@@ -21,6 +21,8 @@ I componenti corrispondono alle entità presenti nel problema, che vengono così
 Perché queste entità possano costituire un sistema è necessario che comunichino tra loro. La comunicazione deve poter avvenire in modo sincrono o asincrono in quanto determinate azioni devono poter essere svolte in sequenza o in parallelo. 
 Trattandosi di un sistema distribuito diventa necessario l’utilizzo di messaggi.
 
+Un'analisi formalizzata è presente nel seguente file [.qak](analisi.qak)
+
 ## Stato del Sistema
 
 Lo stato del sistema deve rappresentare:
@@ -61,6 +63,7 @@ All’interno del test saranno verificati i seguenti punti:
 *   verificare che il waiter accompagni il client alla exitdoor.
 
 Il testing dell’applicazione sarà effettuato tramite JUnit.
+
 Il testing con JUnit permette di automatizzare parte dei comportamenti e di verificare che i risultati siano coerenti con le aspettative. 
 
 ## Approccio incrementale
