@@ -81,7 +81,5 @@ Nel contesto in cui ci troviamo ad operare possiamo ritenere che la perdita di m
 
 
 <!-- Footnotes themselves at the bottom. -->
-## Notes
-
 [^1]:
      http://www.fipa.org/specs/fipa00037/SC00037J.html
