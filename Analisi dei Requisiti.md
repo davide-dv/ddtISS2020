@@ -41,7 +41,7 @@ Alcune di queste sono: l’assenza di flusso di controllo indipendente e sopratt
 Queste caratteristiche si possono trovare cambiando paradigma in favore di uno ad Attori.
 
 Gli attori infatti hanno un flusso di controllo indipendente e comunicano tramite messaggi _by design_ su nodi diversi.
-_Per un confronto con altre tecnologie riferirsi al file: “[Confronto tecnologie](technology_comparison.md)”_
+_Per un confronto con altre tecnologie riferirsi al file: “[Confronto tecnologie](/blob/master/Confronto%20tecnologie.md)”_
 
 Per questo è stato analizzato il linguaggio di modellazione Qactor.
 Date le sue caratteristiche è quello più adatto a gestire questo problema.
