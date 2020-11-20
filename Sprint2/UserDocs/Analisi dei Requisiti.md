@@ -1,10 +1,9 @@
 # Analisi dei Requisiti
 
 Per il secondo sprint consideriamo i seguenti vincoli:
-
-    ● nel sistema ci sono fino a 3 Client
+ ● nel sistema ci sono fino a 3 Client
     
-    ● i Client eseguono le operazioni correttamente
+ ● i Client eseguono le operazioni correttamente
 
 Di conseguenza il Waiter deve poter gestire più messaggi provenienti da uno dei Client, dalla Smartbell o dal Barman in modo parallelo, il tutto senza perdita di messaggi.
 
