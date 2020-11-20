@@ -1,6 +1,7 @@
 # Analisi dei Requisiti
 
-Per il secondo sprint consideriamo i seguenti vincoli:● nel sistema ci sono fino a 3 Client
+Per il secondo sprint consideriamo i seguenti vincoli:
+    ● nel sistema ci sono fino a 3 Client
     ● i Client eseguono le operazioni correttamente
 
 Di conseguenza il Waiter deve poter gestire più messaggi provenienti da uno dei Client, dalla Smartbell o dal Barman in modo parallelo, il tutto senza perdita di messaggi.
@@ -14,3 +15,5 @@ La scadenza del tempo massimo è individuale per ogni tavolo.
 I casi d’uso considerati in questo Sprint sono gli stessi definiti nell’analisi generale, e sono definiti formalmente insieme ai requisiti presi in considerazione all’interno del file [qak linkato](analisi.qak).
 
 Lo stesso vale per il testPlan definito all’interno del seguente [file di testing Junit](TearoomTest.kt).
+
+Il Manager deve poter visualizzare lo [stato del sistema](Sprint0/Analisi%20dei%20Requisiti.md) attraverso l'interfaccia grafica.
