@@ -16,4 +16,4 @@ I casi d’uso considerati in questo Sprint sono gli stessi definiti nell’anal
 
 Lo stesso vale per il testPlan definito all’interno del seguente [file di testing Junit](TearoomTest.kt).
 
-Il Manager deve poter visualizzare lo [stato del sistema](../Sprint0/Analisi%20dei%20Requisiti.md#componenti-del-sistema) attraverso l'interfaccia grafica.
+Il Manager deve poter visualizzare lo [stato del sistema](../../Sprint0/Analisi%20dei%20Requisiti.md#componenti-del-sistema) attraverso l'interfaccia grafica.
