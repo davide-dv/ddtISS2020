@@ -1,6 +1,7 @@
 # Analisi dei Requisiti
 
 Per il secondo sprint consideriamo i seguenti vincoli:
+
  ● nel sistema ci sono fino a 3 Client
     
  ● i Client eseguono le operazioni correttamente
