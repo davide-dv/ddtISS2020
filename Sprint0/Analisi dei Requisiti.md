@@ -61,6 +61,7 @@ All’interno del test saranno verificati i seguenti punti:
 *   verificare che il waiter consegni il tè giusto al tavolo da cui è partito l’ordine;
 *   verificare che il waiter ottenga il pagamento se scade il tempo massimo per la consumazione del client (maxstaytime);
 *   verificare che il waiter accompagni il client alla exitdoor.
+*   verificare che il sistema funzioni correttamente con più Client.
 
 Il testing dell’applicazione sarà effettuato tramite JUnit.
 
