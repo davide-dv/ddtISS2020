@@ -23,8 +23,8 @@ Sono stati valutati due approcci.
 Il primo, più semplice, prevede che la parte web lanci delle richieste verso il sistema ad intervalli regolari, per richiedere lo stato.
 Questo approccio di polling è stato scartato perché poco efficiente in quanto effettua delle richieste anche quando non c’è un effettivo cambiamento di stato, e potrebbe portare in casi limite alla congestione del protocollo di rete.
 
-Il secondo approccio è tramite interrupt.
-In questo caso, la parte web osserva i cambiamenti delle componenti del sistema utilizzando il pattern observer.
+Il secondo approccio è tramite pattern observer.
+In questo caso, la parte web osserva i cambiamenti delle componenti del sistema.
 In tal modo riceve delle notifiche soltanto quando c’è un cambiamento di stato.
 
 É stato adottato quindi quest’ultimo utilizzando come supporto software il protocollo COAP che offre le API adatte al paradigma sopra citato.
