@@ -106,7 +106,7 @@ fun testCoap() {
 	
 @kotlinx.coroutines.ObsoleteCoroutinesApi
 @kotlinx.coroutines.ExperimentalCoroutinesApi		
-fun testCoapFullRoom() {
+fun testCoapFullRoom() {				// third client requires to enter when all tables are occupied 
 	smartbell.setURI(uriStr)
 	waiter.setURI(uriWaiter)
 	
@@ -193,7 +193,347 @@ fun testCoapFullRoom() {
 		delay(7000)		
 	}
 }
+
+@kotlinx.coroutines.ObsoleteCoroutinesApi
+@kotlinx.coroutines.ExperimentalCoroutinesApi
+fun testCoapFullRoomOneTimer() {		// timer elapses for one client 
+	smartbell.setURI(uriStr)
+	waiter.setURI(uriWaiter)
+	val timer0 = CoapClient()
+	val uriTimer0 = "coap://127.0.0.1:8050/ctxtearoom/timer0"
+	timer0.setURI(uriTimer0)
 	
+	runBlocking{
+		delay(initDelayTime)			
+	
+		//assertTrue(smartbell.get().getResponseText() == """{"state":"handleRequest"}""")
+		println(smartbell.get().getResponseText())
+		assertTrue(smartbell.get().getResponseText() == """{"state":"handleRequest"}""")
+		
+		// ------------------- NOTIFY ------------------- 
+		// first client notify
+		var msg : ApplMessage = MsgUtil.buildDispatch("test", "notify", "notify(X)", "smartbell")		
+		smartbell.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)	
+		delay(250)
+		assertTrue(smartbell.get().getResponseText() == """{"state":"checkTemperature","clientID":1,"msg":"Temperature OK"}""")
+		
+		delay(1200)
+				
+		assertTrue(smartbell.get().getResponseText() == """{"state":"showWaiterResponse","clientID":1,"msg":"Enter Now"}""")		
+		delay(1200)	
+		assertTrue(smartbell.get().getResponseText() == """{"state":"handleRequest"}""")
+		delay(5000)
+		println(waiter.get().getResponseText())
+		assertTrue(waiter.get().getResponseText() == """{"state":"convoyClient","target":0,"table0":"dirty","table1":"clean"}""")
+		
+		// second client notify	
+		smartbell.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)	
+		delay(250)
+		//println("----> " + smartbell.get().getResponseText())
+		assertTrue(smartbell.get().getResponseText() == """{"state":"checkTemperature","clientID":2,"msg":"Temperature OK"}""")
+		delay(4500)
+		
+		assertTrue(smartbell.get().getResponseText() == """{"state":"showWaiterResponse","clientID":2,"msg":"Enter Now"}""")		
+		delay(1200)
+			
+		assertTrue(smartbell.get().getResponseText() == """{"state":"handleRequest"}""")
+		
+		delay(8000)
+		//println("----> " + waiter.get().getResponseText())
+		assertTrue(waiter.get().getResponseText() == """{"state":"convoyClient","target":1,"table0":"dirty","table1":"dirty"}""")
+		
+		// third client notify
+		smartbell.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)	
+		delay(250)	
+		delay(2000)	
+		
+		// needs to wait: the tearoom is full
+		println("----> " + smartbell.get().getResponseText())
+		assertTrue(smartbell.get().getResponseText() == """{"state":"showWaiterResponse","clientID":3,"msg":"Wait for 1000"}""")
+
+		// ------------------- ORDER -------------------		
+		// Client (id:0) order
+		msg = MsgUtil.buildDispatch("test", "order", "order(Twinings, 0)", "waiter")
+		waiter.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)
+		delay(250)		
+	
+		println("A----> " + waiter.get().getResponseText())
+
+		// Client (id:1) order		
+		msg = MsgUtil.buildDispatch("test", "order", "order(Lipton, 1)", "waiter")
+		waiter.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)		
+		delay(1000)
+		// Client (id:0) receiving tea
+		println("B----> " + waiter.get().getResponseText())
+		//assertTrue(waiter.get().getResponseText() == """{"state":"serve","tea":"Twinings","table":0}""")
+		
+		delay(10000)				
+		println("C----> " + timer0.get().getResponseText())
+		assertTrue(timer0.get().getResponseText() == """{"state":"enable"}""")		
+
+		delay(10000)
+		// Client (id:0) receiving tea
+		//println("----> " + waiter.get().getResponseText())
+		//assertTrue(waiter.get().getResponseText() == """{"state":"serve","tea":"Lipton","table":1}""")
+		delay(5000)
+		
+		// ------------------- PAY -------------------
+		//msg = MsgUtil.buildDispatch("test", "payment", "payment(1)", "waiter")
+		//waiter.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)
+		/*delay(10000)
+		assertTrue(waiter.get().getResponseText() == """{"state":"cleanTable","table":1}""")	
+		delay(1300)*/
+		
+		msg = MsgUtil.buildDispatch("test", "payment", "payment(1)", "waiter")
+		waiter.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)		
+		delay(7000)			
+		assertTrue(waiter.get().getResponseText() == """{"state":"cleanTable","table":1}""")	
+		
+		delay(18000)
+		println("D----> " + waiter.get().getResponseText())
+		assertTrue(waiter.get().getResponseText() == """{"state":"cleanTable","table":0}""")	
+		delay(5000)
+
+	}
+
+}
+	
+@kotlinx.coroutines.ObsoleteCoroutinesApi
+@kotlinx.coroutines.ExperimentalCoroutinesApi
+fun testCoapFullRoomTwoTimer() {		// timer elapses for two client 
+	smartbell.setURI(uriStr)
+	waiter.setURI(uriWaiter)
+	val timer0 = CoapClient()
+	val uriTimer0 = "coap://127.0.0.1:8050/ctxtearoom/timer0"
+	val timer1 = CoapClient()
+	val uriTimer1 = "coap://127.0.0.1:8050/ctxtearoom/timer1"
+	timer0.setURI(uriTimer0)
+	timer1.setURI(uriTimer1)
+	
+	runBlocking{
+		delay(initDelayTime)			
+	
+		assertTrue(smartbell.get().getResponseText() == """{"state":"handleRequest"}""")
+		
+		// ------------------- NOTIFY ------------------- 
+		// first client notify
+		var msg : ApplMessage = MsgUtil.buildDispatch("test", "notify", "notify(X)", "smartbell")		
+		smartbell.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)	
+		delay(250)
+		assertTrue(smartbell.get().getResponseText() == """{"state":"checkTemperature","clientID":1,"msg":"Temperature OK"}""")
+		
+		delay(1200)
+				
+		assertTrue(smartbell.get().getResponseText() == """{"state":"showWaiterResponse","clientID":1,"msg":"Enter Now"}""")		
+		delay(1200)	
+		assertTrue(smartbell.get().getResponseText() == """{"state":"handleRequest"}""")
+		delay(5000)
+		println(waiter.get().getResponseText())
+		assertTrue(waiter.get().getResponseText() == """{"state":"convoyClient","target":0,"table0":"dirty","table1":"clean"}""")
+		
+		// second client notify	
+		smartbell.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)	
+		delay(250)
+		
+		assertTrue(smartbell.get().getResponseText() == """{"state":"checkTemperature","clientID":2,"msg":"Temperature OK"}""")
+		delay(4500)
+		
+		assertTrue(smartbell.get().getResponseText() == """{"state":"showWaiterResponse","clientID":2,"msg":"Enter Now"}""")		
+		delay(1200)
+			
+		assertTrue(smartbell.get().getResponseText() == """{"state":"handleRequest"}""")
+		
+		delay(8000)
+
+		assertTrue(waiter.get().getResponseText() == """{"state":"convoyClient","target":1,"table0":"dirty","table1":"dirty"}""")
+		/*
+		// third client notify
+		smartbell.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)	
+		delay(250)	
+		delay(2000)	
+		
+		// needs to wait: the tearoom is full
+		println("----> " + smartbell.get().getResponseText())
+		assertTrue(smartbell.get().getResponseText() == """{"state":"showWaiterResponse","clientID":3,"msg":"Wait for 1000"}""")
+*/
+		// ------------------- ORDER -------------------		
+		// Client (id:0) order
+		msg = MsgUtil.buildDispatch("test", "order", "order(Twinings, 0)", "waiter")
+		waiter.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)
+		delay(250)		
+	
+		println("A----> " + waiter.get().getResponseText())
+
+		// Client (id:1) order		
+		msg = MsgUtil.buildDispatch("test", "order", "order(Lipton, 1)", "waiter")
+		waiter.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)		
+		delay(1000)
+		// Client (id:0) receiving tea
+		println("B----> " + waiter.get().getResponseText())
+		//assertTrue(waiter.get().getResponseText() == """{"state":"serve","tea":"Twinings","table":0}""")
+		
+		delay(10000)				
+		println("T0----> " + timer0.get().getResponseText())
+		assertTrue(timer0.get().getResponseText() == """{"state":"enable"}""")		
+
+		delay(10000)
+		// Client (id:0) receiving tea
+		println("----> " + waiter.get().getResponseText())
+		//assertTrue(waiter.get().getResponseText() == """{"state":"serve","tea":"Lipton","table":1}""")
+		println("T1----> " + timer1.get().getResponseText())
+		assertTrue(timer1.get().getResponseText() == """{"state":"enable"}""")
+		delay(5000)
+		
+		// ------------------- PAY -------------------
+		//msg = MsgUtil.buildDispatch("test", "payment", "payment(1)", "waiter")
+		//waiter.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)
+		/*delay(10000)
+		assertTrue(waiter.get().getResponseText() == """{"state":"cleanTable","table":1}""")	
+		delay(1300)
+		
+		msg = MsgUtil.buildDispatch("test", "payment", "payment(1)", "waiter")
+		waiter.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)		
+		delay(7000)			
+		assertTrue(waiter.get().getResponseText() == """{"state":"cleanTable","table":1}""")*/	
+		
+		delay(28000)
+		println("C----> " + waiter.get().getResponseText())
+		assertTrue(waiter.get().getResponseText() == """{"state":"cleanTable","table":0}""")
+		
+		// TROVARE DELAY
+		delay(10000)
+		println("D----> " + waiter.get().getResponseText())		
+		assertTrue(waiter.get().getResponseText() == """{"state":"cleanTable","table":1}""")
+			
+		delay(5000)
+
+	}
+
+}	
+	
+@kotlinx.coroutines.ObsoleteCoroutinesApi
+@kotlinx.coroutines.ExperimentalCoroutinesApi
+fun testCoapFullRoomThirdClient() {		// third Client enter when a table is clean 
+	smartbell.setURI(uriStr)
+	waiter.setURI(uriWaiter)
+	val timer0 = CoapClient()
+	val uriTimer0 = "coap://127.0.0.1:8050/ctxtearoom/timer0"
+	timer0.setURI(uriTimer0)
+	
+	runBlocking{
+		delay(initDelayTime)			
+	
+		//assertTrue(smartbell.get().getResponseText() == """{"state":"handleRequest"}""")
+		println(smartbell.get().getResponseText())
+		assertTrue(smartbell.get().getResponseText() == """{"state":"handleRequest"}""")
+		
+		// ------------------- NOTIFY ------------------- 
+		// first client notify
+		var msg : ApplMessage = MsgUtil.buildDispatch("test", "notify", "notify(X)", "smartbell")		
+		smartbell.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)	
+		delay(250)
+		assertTrue(smartbell.get().getResponseText() == """{"state":"checkTemperature","clientID":1,"msg":"Temperature OK"}""")
+		
+		delay(1200)
+				
+		assertTrue(smartbell.get().getResponseText() == """{"state":"showWaiterResponse","clientID":1,"msg":"Enter Now"}""")		
+		delay(1200)	
+		assertTrue(smartbell.get().getResponseText() == """{"state":"handleRequest"}""")
+		delay(5000)
+		println(waiter.get().getResponseText())
+		assertTrue(waiter.get().getResponseText() == """{"state":"convoyClient","target":0,"table0":"dirty","table1":"clean"}""")
+		
+		// second client notify	
+		smartbell.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)	
+		delay(250)
+		//println("----> " + smartbell.get().getResponseText())
+		assertTrue(smartbell.get().getResponseText() == """{"state":"checkTemperature","clientID":2,"msg":"Temperature OK"}""")
+		delay(4500)
+		
+		assertTrue(smartbell.get().getResponseText() == """{"state":"showWaiterResponse","clientID":2,"msg":"Enter Now"}""")		
+		delay(1200)
+			
+		assertTrue(smartbell.get().getResponseText() == """{"state":"handleRequest"}""")
+		
+		delay(8000)
+		//println("----> " + waiter.get().getResponseText())
+		assertTrue(waiter.get().getResponseText() == """{"state":"convoyClient","target":1,"table0":"dirty","table1":"dirty"}""")
+		
+		// third client notify
+		smartbell.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)	
+		delay(250)	
+		delay(2000)	
+		
+		// needs to wait: the tearoom is full
+		println("----> " + smartbell.get().getResponseText())
+		assertTrue(smartbell.get().getResponseText() == """{"state":"showWaiterResponse","clientID":3,"msg":"Wait for 1000"}""")
+
+		// ------------------- ORDER -------------------		
+		// Client (id:0) order
+		msg = MsgUtil.buildDispatch("test", "order", "order(Twinings, 0)", "waiter")
+		waiter.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)
+		delay(250)		
+	
+		println("A----> " + waiter.get().getResponseText())
+
+		// Client (id:1) order		
+		msg = MsgUtil.buildDispatch("test", "order", "order(Lipton, 1)", "waiter")
+		waiter.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)		
+		delay(1000)
+		// Client (id:0) receiving tea
+		println("B----> " + waiter.get().getResponseText())
+		//assertTrue(waiter.get().getResponseText() == """{"state":"serve","tea":"Twinings","table":0}""")
+		
+		delay(10000)				
+		println("C----> " + timer0.get().getResponseText())
+		assertTrue(timer0.get().getResponseText() == """{"state":"enable"}""")		
+
+		delay(10000)
+		// Client (id:0) receiving tea
+		//println("----> " + waiter.get().getResponseText())
+		//assertTrue(waiter.get().getResponseText() == """{"state":"serve","tea":"Lipton","table":1}""")
+		delay(5000)
+		
+		// ------------------- PAY -------------------
+		//msg = MsgUtil.buildDispatch("test", "payment", "payment(1)", "waiter")
+		//waiter.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)
+		/*delay(10000)
+		assertTrue(waiter.get().getResponseText() == """{"state":"cleanTable","table":1}""")	
+		delay(1300)*/
+		
+		msg = MsgUtil.buildDispatch("test", "payment", "payment(1)", "waiter")
+		waiter.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)		
+		delay(7000)			
+		assertTrue(waiter.get().getResponseText() == """{"state":"cleanTable","table":1}""")	
+		
+		delay(18000)
+		println("D----> " + waiter.get().getResponseText())
+		assertTrue(waiter.get().getResponseText() == """{"state":"cleanTable","table":0}""")	
+		//delay(5000)
+		
+
+		// third Client notify again
+		msg = MsgUtil.buildDispatch("test", "notify", "notify(X)", "smartbell")		
+		smartbell.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)	
+		delay(250)
+		assertTrue(smartbell.get().getResponseText() == """{"state":"checkTemperature","clientID":4,"msg":"Temperature OK"}""")		
+	
+		delay(5000)	
+		println("----> " + smartbell.get().getResponseText())
+
+		assertTrue(smartbell.get().getResponseText() == """{"state":"showWaiterResponse","clientID":4,"msg":"Enter Now"}""")		
+		delay(3000)
+		println("----> " + waiter.get().getResponseText())		
+		assertTrue(waiter.get().getResponseText() == """{"state":"convoyClient","target":0,"table0":"dirty","table1":"clean"}""")
+		delay(5000)
+	}
+
+}
+
+
+
+
+
 @kotlinx.coroutines.ObsoleteCoroutinesApi
 @kotlinx.coroutines.ExperimentalCoroutinesApi
 fun testMaxStayTime() {
@@ -221,10 +561,12 @@ fun testMaxStayTime() {
 		println("COLLECT ----> " + waiter.get().getResponseText())
 		assertTrue(waiter.get().getResponseText() == """{"state":"collect","table":0}""")
 		delay(20000)
-	}
-	
-	
+	}	
 }	
+
+
+
+
 	
 			
 @kotlinx.coroutines.ObsoleteCoroutinesApi
@@ -234,7 +576,10 @@ fun testMaxStayTime() {
 					
 		//testCoap()
 		//testCoapMultiClient()
-		testCoapFullRoom()
+		//testCoapFullRoom()
+		//testCoapFullRoomOneTimer()
+		testCoapFullRoomTwoTimer()
+		//testCoapFullRoomThirdClient()
 		//testMaxStayTime()
 		
 	}
