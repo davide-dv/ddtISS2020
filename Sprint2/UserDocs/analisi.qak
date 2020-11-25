@@ -30,135 +30,49 @@ Dispatch transmitOrder : transmitOrder(TEA, TABLE)
 Dispatch teaReady : teaReady(TEA, TABLE)
 // client --> waiter
 Dispatch payment : payment(TABLE)
-// timer --> waiter 
+// timer --> waiter
 Dispatch maxStayTimeExpired : maxStayTimeExpired(TABLE)
-// waiter --> timer
-Dispatch startTimer0 : startTimer0(X)
-Dispatch startTimer1 : startTimer1(X)
-Dispatch stopTimer0 : stopTimer0(X)
-Dispatch stopTimer1 : stopTimer1(X)
-
-// ----- walker ------
-	
-Request  movetoCell : movetoCell(X,Y)
-Reply    atcell     : atcell(X,Y)
-Reply	 walkbreak  : walkbreak(X,Y) 
-
-Dispatch cmd       : cmd(MOVE)
-Request step       : step( TIME )	
-Reply   stepdone   : stepdone(V)  
-Reply   stepfail   : stepfail(V) 
-
-//Context ctxtearoom   ip [host="192.168.1.125" port=8050]
-Context ctxtearoom   ip [host="127.0.0.1" port=8050]
-Context ctxbasicrobot   ip [host="localhost" port=8020]
 
 
-
-
-ExternalQActor basicrobot context ctxbasicrobot
-
-
+Context ctxtearoom   ip [host="localhost" port=8050]
   
 QActor waiter context ctxtearoom {  
-	[# 
+	[# 			
 		var Table0 = "clean"	
-		var Table1 = "clean"		
-		
-		val InactivityTime = 30000L
-		val MaxTime = 1000			
-		val map = "teaRoomExplored"
-		var CurrentClientID = ""
-		var ServingTable = 0
-		
-		val EntranceX = 1
-		val EntranceY = 4 
-		val Table0X = 2
-		val Table0Y = 2 
-		val Table1X = 4 
-		val Table1Y = 2
-		val ExitX = 5
-		val ExitY = 4
-		val BarmanX = 5
- 		val BarmanY = 0
- 		val HomeX = 0
- 		val HomeY = 0
+		var Table1 = "clean"
+		val MaxTime = 1000	
 	#]
 	
 	State start initial {
 		println("Waiter  : Started")
-		
-		run itunibo.planner.plannerUtil.initAI()
-		run itunibo.planner.plannerUtil.loadRoomMap(map) 		
-		run itunibo.planner.plannerUtil.showCurrentRobotState()	
 	} Goto handleRequest
 	
 	State handleRequest {
-		println("Waiter  : handleRequest")			
-		updateResource [# """{"state":"handleRequest"}""" #]
-		
-	} Transition t0 whenTimeVar InactivityTime -> goHome 
+		println("Waiter  : Listening")			
+	} Transition t0 whenTime 5000 -> goHome 
 					whenRequest enterRequest -> tableCheck
 					whenMsg order -> transmitToBarman
 					whenMsg teaReady -> serve
 					whenMsg payment -> collect	
 					whenMsg maxStayTimeExpired -> collect
-					
-					
 	
-	State tableCheck {   
+	State tableCheck {   // request/reply alla tearoom 
 		println("Waiter  : Checking tables")				
 		
-		onMsg (enterRequest : enterRequest(CLIENT_ID)) {
-			[# CurrentClientID = payloadArg(0) #]
-		}
-		
-		delay 1000
 		if [# Table0 == "clean" || Table1 == "clean" #] { 
 			replyTo enterRequest with accept : accept(X)
 		} else {
 			replyTo enterRequest with inform : inform($MaxTime)
-		}			
-		updateResource [# """{"state":"tablecheck","table0":"$Table0","table1":"$Table1"}""" #]		
+		}				
 	} Goto reachEntrance if [# Table0 == "clean" || Table1 == "clean" #] else handleRequest
 	
-	State reachEntrance {	 
-		println("Waiter  : Reaching Entrance")
-		updateResource [# "[reachEntrance]" #]	
-		request walker -m movetoCell : movetoCell($EntranceX, $EntranceY)		
-	} Transition t0 whenReply atcell -> convoyClient
+	State reachEntrance {	// dovrà avere un atEntrance dal walker 
+		println("Waiter  : Reaching Entrance")		
+	} Goto convoyClient
 	
-	State convoyClient {  
-		println("Waiter  : Reaching Table")	
-		[# var TargetTable = 0 #]			
-		if [# Table0 == "clean" #]  {
-			[# 
-				TargetTable = 0
-			#]
-		} 
-		if [# Table0 == "dirty" && Table1 == "clean" #] {
-			[# 
-				TargetTable = 1			
-			#]
-		}		
-		if [# TargetTable == 0 #] {
-			[# 
-				Table0 = "dirty" 
-				//TableMapping.set(0, CurrentClientID)
-			#]
-			request walker -m movetoCell : movetoCell($Table0X, $Table0Y)	
-		}
-		if [# TargetTable == 1 #] {
-			[# 
-				Table1 = "dirty" 
-				//TableMapping.set(1, CurrentClientID)
-			#]
-			request walker -m movetoCell : movetoCell($Table1X, $Table1Y)	
-		}
-		//updateResource [# "[convoyClient]: Target=$TargetTable, Table0=$Table0, Table1=$Table1" #]	
-		updateResource [# """{"state":"convoyClient","target":$TargetTable,"table0":"$Table0","table1":"$Table1"}""" #]
-		
-	} Transition t0 whenReply atcell -> handleRequest
+	State convoyClient {  // dovrà avere un atTable dal walker 
+		println("Waiter  : Reaching Table")			
+	} Goto handleRequest
 	
 	State transmitToBarman {
 		println("Waiter  : Transmitting order to barman")
@@ -168,105 +82,37 @@ QActor waiter context ctxtearoom {
 				val Table = payloadArg(1)				 
 			#]
 			forward barman -m transmitOrder : transmitOrder($Tea, $Table)
-			//updateResource [# "[transmitToBarman]: Tea=$Tea, Table=$Table" #]
-			updateResource [# """{"state":"transmitToBarman","tea":"$Tea","table":$Table}""" #]			
-		}		
+		}			
 	} Goto handleRequest
 	
 	State serve {
 		println("Waiter  : Going to serve the client")
-			
+		
 		onMsg (teaReady : teaReady(TEA, TABLE)) {
 			[#
 				val Tea = payloadArg(0)
 				ServingTable = payloadArg(1).toInt() 
-			#]
-			//updateResource [# "Tea ready: $Tea - For table: $ServingTable" #]
-			updateResource [# """{"state":"serve","tea":"$Tea","table":$ServingTable}""" #]
-			request walker -m movetoCell : movetoCell($BarmanX, $BarmanY)
+			#]		
 		}
-	
-	} Transition t0 whenReply atcell -> deliverTea
-	
-	State deliverTea {
-		println("Waiter  : delivering tea")
-		if [# ServingTable == 0 #] {
-			request walker -m movetoCell : movetoCell($Table0X, $Table0Y)	
-		}
-		if [# ServingTable == 1 #] {
-			request walker -m movetoCell : movetoCell($Table1X, $Table1Y)	
-		}		
-		updateResource [# """{"state":"deliverTea","table":$ServingTable}""" #]
-	} Transition t0 whenReply atcell -> enableTimer
-	
-	State enableTimer {
-		println("Waiter  : enabling timer")
-		if [# ServingTable == 0 #] {
-			forward timer0 -m startTimer0 : startTimer0(X)
-		}
-		if [# ServingTable == 1 #] {
-			forward timer1 -m startTimer1 : startTimer1(X)	
-		}		
-		updateResource [# """{"state":"enableTimer","table":$ServingTable}""" #]	
-	} Goto handleRequest
-	
+	} Goto handleRequest	
 	
 	State collect{
 		println("Waiter  : Collecting the payment")	
-		onMsg (payment : payment(TABLE)) {
-			[# ServingTable = payloadArg(0).toInt() #]			
-		}
-		onMsg (maxStayTimeExpired : maxStayTimeExpired(TABLE)) {
-			[# ServingTable = payloadArg(0).toInt() #]			
-		}		
-		
-		if [# ServingTable == 0 #] {
-				request walker -m movetoCell : movetoCell($Table0X, $Table0Y)	
-				forward timer0 -m stopTimer0 : stopTimer0(X)
-			}
-		if [# ServingTable == 1 #] {
-				request walker -m movetoCell : movetoCell($Table1X, $Table1Y)	
-				forward timer1 -m stopTimer1 : stopTimer1(X)
-			}
-		updateResource [# """{"state":"collect","table":$ServingTable}""" #]
-			
-	} Transition t0 whenReply atcell -> convoyAtExit  
+	} Goto convoyAtExit  
 	
 	State convoyAtExit {
-		println("Waiter  : Taking the client to the exit")
-		updateResource [# """{"state":"convoyAtExit"}""" #]
-		request walker -m movetoCell : movetoCell($ExitX, $ExitY)				
-	} Transition t0 whenReply atcell -> cleanTable	
+		println("Waiter  : Taking the client to the exit")		
+	} Goto cleanTable
 	
 	State cleanTable {
-		updateResource [# """{"state":"cleanTable","table":$ServingTable}""" #]
 		println("Waiter  : Cleaning the table")		
-		if [# ServingTable == 0 #] {
-			request walker -m movetoCell : movetoCell($Table0X, $Table0Y)	
-		}
-		if [# ServingTable == 1 #] {
-			request walker -m movetoCell : movetoCell($Table1X, $Table1Y)	
-		}
-	} Transition t0 whenReply atcell -> setTableClean
-	
-	State setTableClean {
-		println("Waiter  : the table is clean")		
-			// variabile globale	
-		if [# ServingTable == 0 #] {
-			[# Table0 = "clean" #]
-		}
-		if [# ServingTable == 1 #] {
-			[# Table1 = "clean" #]
-		}
-		updateResource [# """{"state":"setTableClean","table":$ServingTable}""" #]
-		delay 500
 	} Goto handleRequest
 	
-	
-	State goHome { 
+	State goHome { // messaggio dal walker 
 		println("Waiter  : Going home")
-		request walker -m movetoCell : movetoCell($HomeX, $HomeY) 
-	} Transition t0 whenReply atcell -> handleRequest    
+		delay 1000	
+	} Goto handleRequest
+    
  }
  
  QActor smartbell context ctxtearoom {
@@ -275,7 +121,6 @@ QActor waiter context ctxtearoom {
  	
  	State handleRequest initial {
  		println("Smart Bell: Start and listening") 	
- 		updateResource [# """{"state":"handleRequest"}""" #]
  	} Transition t0 whenMsg notify -> checkTemperature	
  					whenReply accept -> showWaiterResponse
  					whenReply inform -> showWaiterResponse
@@ -283,28 +128,25 @@ QActor waiter context ctxtearoom {
  	State checkTemperature {
  		println("Smart Bell: Checking client temperature") 	
  		[# var Temperature = 35 #]
- 
+ 		
  		if [# Temperature < 37.5 #] {
- 			[# CurrentID ++ #]	 		 			
- 			updateResource [# """{"state":"checkTemperature","clientID":$CurrentID,"msg":"Temperature OK"}""" #]			
- 			request waiter -m enterRequest : enterRequest($CurrentID)
- 		} else { 			
- 			updateResource [# """{"state":"checkTemperature","clientID":$CurrentID,"msg":"Temperature too high"}""" #]
- 		}
- 		delay 500 		
+ 			[# CurrentID ++ #]	 			
+ 			updateResource [# "$CurrentID --- Temperature OK" #]
+ 			request waiter -m enterRequest : enterrequest($CurrentID)
+ 		} else {
+ 			updateResource [# "$CurrentID --- Temperature too High" #]		
+ 		} 		 		
  	} Goto handleRequest 		
 
  	
  	State showWaiterResponse {
  		println("Smart Bell: Showing waiter response")
- 		onMsg (accept : accept(X)) { 			
- 			updateResource [# """{"state":"showWaiterResponse","clientID":$CurrentID,"msg":"Enter Now"}""" #] 			
+ 		onMsg (accept : accept(X)) {
+ 			updateResource [# "$CurrentID --- Enter Now" #]
  		}
- 		onMsg (inform : inform(MAX_TIME)) { 			
- 			[# val MaxTime = payloadArg(0) #]
- 			updateResource [# """{"state":"showWaiterResponse","clientID":$CurrentID,"msg":"Wait for $MaxTime"}""" #]
+ 		onMsg (inform : inform(MAX_TIME)) {
+ 			updateResource [# "$CurrentID --- Wait for " + payloadArg(0) #]
  		} 		
- 		delay 1000
  	} Goto handleRequest
 }
  
@@ -312,7 +154,6 @@ QActor barman context ctxtearoom {
 	
 	State waitingOrder initial {
 		println("Barman waiting for an order")		
-		updateResource [# """{"state":"waitingOrder"}""" #]
 	} Transition t0 whenMsg transmitOrder -> prepareTea 
 	
 	State prepareTea {
@@ -323,149 +164,6 @@ QActor barman context ctxtearoom {
 				val CurrentTable = payloadArg(1) 
 			#]
 			forward waiter -m   teaReady : teaReady($Tea, $CurrentTable)
-			updateResource [# """{"state":"prepareTea","tea":"$Tea","table":$CurrentTable}""" #]
 		}		
-		
 	} Goto waitingOrder	
-} 
-
-QActor walker context ctxtearoom {
-	
-	[#
-		var DestX = 0
-		var DestY = 0 	
-		
-		var CurrentMove = ""		
-		//val StepTime = 380L
-		val StepTime = 360L	
-		var obstacleFound = false
-		val BackTime = 2 * StepTime / 3
-	
-	#]
-	
-	
-	State handleCommand initial {
-		println("Walker: started and waiting for commands")
-	} Transition t0 whenRequest movetoCell -> walk
-	
-	State walk {
-		//println("Walker: walking")
-		onMsg (movetoCell : movetoCell(X, Y)) {
-			[#
-				DestX = payloadArg(0).toInt()
-				DestY = payloadArg(1).toInt()
-			#]
-			run itunibo.planner.plannerUtil.planForGoal("$DestX","$DestY")			
-		}	
-	} Goto executePlan if [# itunibo.planner.plannerUtil.existActions() #] else noPlan
-	
-	State noPlan{
-		println("Walker: plan not found")		
-	}
-	Goto handleCommand
-	
-	
-	State executePlan {
-		//println("Walker: executing plan")
-		[#  CurrentMove = itunibo.planner.plannerUtil.getNextPlannedMove() #]
-		delay 250
-	} Goto moveForward if [# CurrentMove == "w" #] else rotate
-	
-	State moveForward {
-		//println("Walker: moving forward")
-		request basicrobot -m step : step( $StepTime  )
-		
-	} Transition t0 whenReply stepdone   -> stepDone   
-					whenReply stepfail   -> stepFailed 
-	
-	
-	State stepDone{  
- 		//println("Walker: step done") 		
- 		run itunibo.planner.plannerUtil.updateMap("w")
-  	}
-	Goto executePlan if [# CurrentMove.length > 0 #] else notifySuccess	
-
-	State notifySuccess{
-	    println("Walker: $DestX,$DestY reached")
-	    run itunibo.planner.plannerUtil.showCurrentRobotState()
-	    replyTo movetoCell with atcell : atcell($DestX,$DestY) 					
-	}
-	Goto handleCommand
-	
-	State stepFailed{
-		println("Walker: step failed")	
-		
-		[# obstacleFound = true #] 		
-		onMsg(stepfail : stepfail(DURATION, CAUSE) ){
-			[# val Duration = payloadArg(0).toLong()  ; val Dt = Math.abs(StepTime-Duration); val BackT = Duration/2 #] 
-			println("Walker stepFail Duration = $Duration, BackTime = ${BackTime}")
-			if [# Duration > BackTime #] {    
-				forward basicrobot -m cmd : cmd( s )
-				delayVar BackT
-				forward basicrobot -m cmd : cmd( h )
-			}	 
- 		}
-	    run itunibo.planner.plannerUtil.updateMapObstacleOnCurrentDirection() 	
-	} Goto handleCommand
-	
-	State rotate {
-		//println("Walker: rotating")
-		if [# CurrentMove == "l" || CurrentMove == "r"  #]{
-  			forward basicrobot -m cmd : cmd($CurrentMove)
- 			run itunibo.planner.plannerUtil.updateMap( "$CurrentMove" )
-  		} 
-		
-	} Goto executePlan if [# CurrentMove.length > 0 #] else notifySuccess
-	
-}
-
-
-QActor timer0 context ctxtearoom {
-	
-	[# 
-		val Table = 0
-		val MaxStayTime = 30000L	
-	#]
-	
-	State handleRequest initial {
-		println("Timer0: waiting for requests")
-		updateResource [# """{"state":"handleRequest"}""" #]
-	} Transition t0 whenMsg startTimer0 -> enable
-	
-	State enable {
-		println("Timer0: Enabling the timer")
-		updateResource [# """{"state":"enable"}""" #]		
-	} Transition t1 whenTimeVar MaxStayTime -> notifyTimeElapsed
-					whenMsg stopTimer0 -> handleRequest
-	
-	State notifyTimeElapsed {
-		println("Timer0: notifying time elapsed")
-		updateResource [# """{"state":"notifyTimeElapsed"}""" #]
-		forward waiter -m maxStayTimeExpired : maxStayTimeExpired($Table)		
-	} Goto handleRequest	
-}
-
-QActor timer1 context ctxtearoom {
-	
-	[# 
-		val Table = 1
-		val MaxStayTime = 30000L	
-	#]
-	
-	State handleRequest initial {
-		println("Timer1: waiting for requests")
-		updateResource [# """{"state":"handleRequest"}""" #]
-	} Transition t0 whenMsg startTimer1 -> enable
-	
-	State enable {
-		println("Timer1: Enabling the timer")
-		updateResource [# """{"state":"enable"}""" #]		
-	} Transition t1 whenTimeVar MaxStayTime -> notifyTimeElapsed
-					whenMsg stopTimer1 -> handleRequest
-	
-	State notifyTimeElapsed {
-		println("Timer1: notifying time elapsed")
-		updateResource [# """{"state":"notifyTimeElapsed"}""" #]
-		forward waiter -m maxStayTimeExpired : maxStayTimeExpired($Table)		
-	} Goto handleRequest	
 } 
