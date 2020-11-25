@@ -15,4 +15,4 @@ Il TestPlan dello Sprint comprende i seguenti punti:
 *   verificare che il waiter consegni il tè giusto al tavolo da cui è partito l’ordine;
 *   verificare che il waiter accompagni il client alla exitdoor.
 
-La formalizzazione dei test è nel seguente [file di testing Junit](TearoomTest.kt).
+La formalizzazione dei test è nel seguente [file di testing Junit](../tearoom/src/test/kotlin/tearoom/TearoomTest.kt).
