@@ -28,6 +28,7 @@ In questo caso, la parte web osserva i cambiamenti delle componenti del sistema.
 In tal modo riceve delle notifiche soltanto quando c’è un cambiamento di stato.
 
 É stato adottato quindi quest’ultimo utilizzando come supporto software il protocollo COAP che offre le API adatte al paradigma sopra citato.
+
 Oltre al COAP, tra le tecnologie supportate dal Qactor possiamo annoverare WebSocket ed MQTT.
 La scelta ricade sul protocollo COAP dato che nel caso specifico del progetto e del linguaggio Qactor è quello che risulta più documentato. Sono infatti già disponibili numerosi esempi già calati nel contesto del linguaggio Qactor, che permettono uno sviluppo e una prototipazione più rapidi.
 
@@ -39,7 +40,9 @@ Il sistema in essere evidenzia una criticità nelle comunicazioni con le compone
 Queste componenti costituiscono quella che è l’interfaccia grafica.
 Tale interfaccia infatti deve adeguarsi a un sistema già in essere con un impatto d’integrazione minimo.
 La scelta del protocollo di comunicazione non deve quindi inficiare negativamente sulle caratteristiche intrinseche del sistema.
+
 Tra le varie opzioni, una di queste è l’integrazione mediante un sistema Restful Service che comporta la gestione della comunicazione in maniera sincrona tramite la metodologia request-response.
+
 Questo però comporterebbe l’adozione di un sistema a polling, sollevando la problematica della scelta della cadenza delle chiamate utili a reperire lo stato del sistema. Chiamate troppo frequenti generano overhead a livello di rete, mentre chiamate saltuarie comporterebbero una possibile perdita d’informazione.
 
 Una scelta quasi obbligata sta quindi nell’adozione di una comunicazione real-time al fine di estendere la reattività fornita dal pattern observer sino alla GUI.
