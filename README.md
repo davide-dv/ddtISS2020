@@ -40,7 +40,7 @@ Inoltre a partire dallo Sprint1 è possible:
 ## Utilizzo interfaccia web Client
 Per effettuare dei test manuali è possibile utilizzare l'interfaccia web Client come descritto al punto 8. del paragrafo precedente.
 Di seguito vengono mostrate le operazioni possibili.
-
-![Prima schermata con sintesi operazioni](Img/1.png "Prima schermata con sintesi operazioni")
-![Esempio Order](Img/2.png "Esempio Order")
-![Esempio Pay](Img/3.png "Esempio Pay")
+|-----------------|-----------------|
+||![Prima schermata con sintesi operazioni](Img/1.png "Prima schermata con sintesi operazioni")|
+||![Esempio Order](Img/2.png "Esempio Order")|
+||![Esempio Pay](Img/3.png "Esempio Pay")|
