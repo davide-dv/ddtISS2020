@@ -18,17 +18,17 @@ Inoltre a partire dallo Sprint1 è possible:
 
 ### Esecuzione test Junit
 
-1. posizionarsi nella cartella `[bin](Utils/it.unibo.qak20.basicrobot-1.0/bin)`
-2. eseguire il file `[it.unibo.qak20.basicrobot](Utils/it.unibo.qak20.basicrobot-1.0/bin/it.unibo.qak20.basicrobot)` (o con estensione `.bat` su Windows) per avviare il **basicrobot**
+1. posizionarsi nella cartella [bin](Utils/it.unibo.qak20.basicrobot-1.0/bin)
+2. eseguire il file [it.unibo.qak20.basicrobot](Utils/it.unibo.qak20.basicrobot-1.0/bin/it.unibo.qak20.basicrobot) (o con estensione `.bat` su Windows) per avviare il **basicrobot**
 4.  posizionarsi nella cartella `tearoom`
 5. eseguire il comando `gradle -b build_ctxtearoom.gradle test` per avviare i test
 
 **NOTA**: di default sarà attivo soltanto un test. Per eseguire tutti i test disponibili è necessario aprire il file TestTearoom.kt relativo allo sprint di interesse e selezionare il metodo di test da eseguire.
 
 ### Esecuzione con interfaccia grafica e Simulatore
-1. posizionarsi nella cartella `[bin](Utils/it.unibo.qak20.basicrobot-1.0/bin)`
-2. eseguire il file `[it.unibo.qak20.basicrobot](Utils/it.unibo.qak20.basicrobot-1.0/bin/it.unibo.qak20.basicrobot)` (o con estensione `.bat` su Windows) per avviare il **basicrobot**
-3. posizionarsi nella cartella `[src](Utils/it.unibo.virtualRobot2020/node/WEnv/server/src)` 
+1. posizionarsi nella cartella [bin](Utils/it.unibo.qak20.basicrobot-1.0/bin)
+2. eseguire il file [it.unibo.qak20.basicrobot](Utils/it.unibo.qak20.basicrobot-1.0/bin/it.unibo.qak20.basicrobot) (o con estensione `.bat` su Windows) per avviare il **basicrobot**
+3. posizionarsi nella cartella [src](Utils/it.unibo.virtualRobot2020/node/WEnv/server/src) 
 4. eseguire il comando `node main 8999` per avviare il **VirtualRobot** (simulatore)
 5. andare alla pagina web con indirizzo `localhost:8090` per vedere la simulazione
 6. posizionarsi nella cartella `Sprint* > WebUI > manager`
@@ -40,3 +40,7 @@ Inoltre a partire dallo Sprint1 è possible:
 ## Utilizzo interfaccia web Client
 Per effettuare dei test manuali è possibile utilizzare l'interfaccia web Client come descritto al punto 8. del paragrafo precedente.
 Di seguito vengono mostrate le operazioni possibili.
+
+![Prima schermata con sintesi operazioni](Img/1.png)
+![Esempio Order](Img/2.png)
+![Esempio Pay](Img/3.png)
