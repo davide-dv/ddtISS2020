@@ -10,7 +10,6 @@
 
  
 System   tearoom
-//mqttBroker "mqtt.eclipse.org" : 1883 eventTopic "unibo/polar" 
 
 
 // client --> smartbell 
