@@ -52,7 +52,15 @@ Step per l'esecuzione:
 4.  posizionarsi nella cartella `tearoom`
 5. eseguire il comando `gradle -b build_ctxtearoom.gradle test` per avviare i test
 
-**NOTA**: di default sarà attivo soltanto un test. Per eseguire tutti i test disponibili è necessario aprire il file TestTearoom.kt relativo allo sprint di interesse e selezionare il metodo di test da eseguire.
+**NOTE**: 
+* di default sarà attivo soltanto un test. Per eseguire tutti i test disponibili è necessario aprire il file TestTearoom.kt relativo allo sprint di interesse e selezionare il metodo di test da eseguire.
+* per garantire una esecuzione fluida dei test, il sistema genera per i *Client* una temperatura **sempre** idonea per poter entrare. Si può modificare questo comportamento cambiando il codice all'interno del file qak `tearoom.qak`, nell'actor `smartbell` (`smartbell.qak` se si tratta dell'esecuzione del sistema su nodi distribuiti).
+```
+// rimuovere il commento a questa riga
+[# var Temperature = (35..38).random() #]
+// commentare questa
+[# var Temperature = 36 #]
+```
 
 ### Esecuzione Test con interfaccia grafica e Simulatore
 1. posizionarsi nella cartella [bin](Utils/it.unibo.qak20.basicrobot-1.0/bin)
