@@ -31,4 +31,4 @@ L’algoritmo allo stato dell’arte in ambito path finding è l’A*, che perme
 Per questo motivo sarà utilizzata l’implementazione del planner già presente _in house_.
 
 ## Architettura logica
-![Architettura logica]("Architettura logica.png")
+![Architettura logica](ArchitetturaLogica.png)
