@@ -45,3 +45,6 @@ Di seguito vengono mostrate le operazioni possibili.
 |Prima schermata con sintesi operazioni|![Prima schermata con sintesi operazioni](Img/1.png "Prima schermata con sintesi operazioni")|
 |Esempio Order|![Esempio Order](Img/2.png "Esempio Order")|
 |Esempio Pay|![Esempio Pay](Img/3.png "Esempio Pay")|
+
+## Interfaccia Manager
+![Manager](Img/manager.png)
