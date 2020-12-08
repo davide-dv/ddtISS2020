@@ -1,6 +1,6 @@
 # Analisi del Problema
 
-**Gestione Client multipla**
+## Gestione Client multipla
 
 La gestione multipla dei Client ci pone davanti ad un problema non affrontato precedentemente, in quanto con un solo Client, le operazioni avvengono tutte in modo sequenziale.
 Nel caso di più Client ci aspettiamo invece di ricevere più messaggi contemporaneamente. Per questo motivo dobbiamo essere sicuri di non perderli e di avere un criterio per dare una priorità alle operazioni.
@@ -8,13 +8,13 @@ Nel caso di più Client ci aspettiamo invece di ricevere più messaggi contempor
 Per evitare la perdita di messaggi non è stato necessario implementare un sistema ad hoc. La tecnologia Qactor adottata prevede infatti la gestione di messaggi tramite la struttura dati a coda, che li immagazzina e ne permette la lettura in un secondo momento.
 Utilizzando questo meccanismo la priorità maggiore viene quindi data al primo messaggio arrivato.
 
-**Gestione MaxStayTime**
+## Gestione MaxStayTime
 
 Lo scorrere del tempo per i Client al tavolo viene modellato utilizzando due timer, uno per ogni tavolo. 
 Ognuno dei timer è realizzato con un attore indipendente, che viene inizializzato dal Waiter nel momento in cui consegna il tè a un certo tavolo. In questo modo i timer sono lasciati liberi di svolgere il proprio conteggio senza nessuna interferenza, e possono mandare notifiche al Waiter alla scadenza del MaxStayTime.
 Se un Client effettua il pagamento prima della scadenza del timer, quest'ultimo verrà bloccato dal Waiter.
 
-**Osservazione dei cambiamenti del sistema**
+## Osservazione dei cambiamenti del sistema
 
 Da requisito è necessario costruire un’interfaccia web per l’utente Manager.
 Ciò rende obbligatorio condividere lo stato del sistema con l’interfaccia web.
@@ -32,9 +32,7 @@ In tal modo riceve delle notifiche soltanto quando c’è un cambiamento di stat
 Oltre al COAP, tra le tecnologie supportate dal Qactor possiamo annoverare WebSocket ed MQTT.
 La scelta ricade sul protocollo COAP dato che nel caso specifico del progetto e del linguaggio Qactor è quello che risulta più documentato. Sono infatti già disponibili numerosi esempi già calati nel contesto del linguaggio Qactor, che permettono uno sviluppo e una prototipazione più rapidi.
 
-
-
-**Comunicazione interfaccia grafica con sistema attori**
+## Comunicazione interfaccia grafica con sistema attori
 
 Il sistema in essere evidenzia una criticità nelle comunicazioni con le componenti esterne.
 Queste componenti costituiscono quella che è l’interfaccia grafica.
@@ -49,7 +47,7 @@ Una scelta quasi obbligata sta quindi nell’adozione di una comunicazione real-
 A tal proposito si è scelto di adottare una comunicazione full-duplex mediante l’ausilio di una WebSocket.
 Le diverse componenti del sistema, dotate di piena autonomia comunicativa, hanno fatto in modo che si creassero i presupposti nei quali il protocollo publish/subscribe ha trovato terreno fertile. L’adozione di tale protocollo permette di sottoscriversi al canale desiderato leggendo i messaggi degli altri o pubblicarne dei propri. In questo modo è possibile interagire con il sistema mentre se ne osservano i cambiamenti, i quali vengono mostrati a video mediante apposita interfaccia.
 
-**Rappresentazione dello stato del sistema**
+## Rappresentazione dello stato del sistema
 
 Per rappresentare lo stato sono stati presi in considerazione due approcci: stato centralizzato in un solo attore oppure stato distribuito.
 Le caratteristiche dell’approccio con stato centralizzato sono:
@@ -67,3 +65,5 @@ Valutando le proprietà appena descritte, si procede con l’approccio distribui
 
 Detto ciò, si punta all’approccio distribuito vista la sua semplicità ed immediatezza.
 
+## Architettura Logica
+![Architettura logica](ArchitetturaLogica.png)
