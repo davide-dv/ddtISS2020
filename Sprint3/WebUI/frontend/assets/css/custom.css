@@ -1,0 +1,45 @@
+#box-client {
+    border-radius: 2em;
+    border-color: black;
+    /*border: 3px solid #ccc !important;*/
+    width: 100%;
+    padding: 13px;
+}
+
+.button-container {
+    margin: 3px;
+}
+
+button {
+    height: 30% !important;
+    width: 80% !important;
+}
+
+.btn20 {
+    width: 100%;
+}
+
+#main-content {
+    max-width: 100%;
+    padding: 2em 3em;
+    margin: 0 auto 20px;
+    background-color: #fff;
+    border: 1px solid #e5e5e5;
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+}
+
+.logs {
+    text-align: center;
+    background-color: #eee;
+    padding: 3%;
+}
+
+.logsTitle {
+    margin-bottom: -0.5%;
+}
+
+td {
+    text-align: left;
+}

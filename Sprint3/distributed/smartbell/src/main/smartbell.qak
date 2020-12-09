@@ -1,0 +1,85 @@
+/* 
+ * ================================================================================
+ * waiter.qak
+ * VERSION June 1, 2020 
+ * 
+ * External MQTT sites:
+ * 	"mqtt.eclipse.org:  mosquitto.org mqtt.fluux.io  broker.hivemq.com
+ * ================================================================================
+ */ 
+
+ 
+System tearoom
+
+// client --> smartbell 
+Dispatch notify : notify(X)
+// smartbell --> client : show on display (temperature, ID, maxwait)
+// smartbell --> waiter
+Request enterRequest : enterRequest(X)
+// waiter --> smartbell
+Reply accept : accept(X)	
+Reply inform : inform(MAX_WAIT)
+
+// smartbell events
+Event updateCheckTemperature : updateCheckTemperature(CLIENTID, RESULT)
+Event updateWaiterResponse : updateWaiterResponse(CLIENTID, MSG)
+Event updateSmartbellHandleRequest : updateSmartbellHandleRequest(X)
+
+
+Context ctxtearoom   ip [host="tearoomhost" port=8050]
+Context ctxwaiter ip [host="waiterhost" port=8021]
+Context ctxsmartbell ip [host="smartbellhost" port=8022]
+
+ 
+ExternalQActor waiter context ctxwaiter
+ 
+QActor smartbell context ctxsmartbell {
+ 	
+ 	[# var CurrentID = 0 #]
+ 	
+ 	State handleRequest initial {
+ 		println("Smart Bell: Start and listening") 	
+ 		updateResource [# """{"state":"handleRequest"}""" #]
+ 		emit updateSmartbellHandleRequest : updateSmartbellHandleRequest(X) 		
+ 	} Transition t0 whenMsg notify -> checkTemperature	
+ 					whenReply accept -> showWaiterResponse
+ 					whenReply inform -> showWaiterResponse
+ 	
+ 	State checkTemperature {
+ 		println("Smart Bell: Checking client temperature") 	
+ 		//[# var Temperature = (35..38).random() #]
+ 		[# var Temperature = 36 #]
+ 		//[# var Temperature = 39 #]
+ 
+ 		if [# Temperature < 37.5 #] {
+ 			[# CurrentID ++	#]	 		 			
+ 			updateResource [# """{"state":"checkTemperature","clientID":$CurrentID,"msg":"Temperature OK"}""" #]
+ 			emit updateCheckTemperature : updateCheckTemperature($CurrentID, Temperature_OK) 				
+ 			request waiter -m enterRequest : enterRequest($CurrentID)
+
+ 		} else { 			
+ 			println("Smart Bell: Client temperature is too high!: $Temperature")
+ 			updateResource [# """{"state":"checkTemperature","clientID":$CurrentID,"msg":"Temperature too high"}""" #]
+ 			emit updateCheckTemperature : updateCheckTemperature($CurrentID, Temperature_too_High)
+ 		}
+ 		delay 500 		
+ 	} Goto handleRequest 		
+
+ 	
+ 	State showWaiterResponse {
+ 		println("Smart Bell: Showing waiter response")
+ 		onMsg (accept : accept(X)) { 			
+ 			updateResource [# """{"state":"showWaiterResponse","clientID":$CurrentID,"msg":"Enter Now"}""" #] 
+			emit updateWaiterResponse : updateWaiterResponse($CurrentID, Enter_Now)	
+ 		}
+ 		onMsg (inform : inform(MAX_TIME)) { 			
+ 			[# val MaxTime = payloadArg(0) #]
+ 			updateResource [# """{"state":"showWaiterResponse","clientID":$CurrentID,"msg":"Wait for $MaxTime"}""" #]
+ 			emit updateWaiterResponse : updateWaiterResponse($CurrentID, $MaxTime)
+ 		} 		
+ 		delay 1000
+ 	} Goto handleRequest
+}
+ 
+
+

@@ -1,0 +1,49 @@
+/* 
+ * ================================================================================
+ * waiter.qak
+ * VERSION June 1, 2020 
+ * 
+ * External MQTT sites:
+ * 	"mqtt.eclipse.org:  mosquitto.org mqtt.fluux.io  broker.hivemq.com
+ * ================================================================================
+ */ 
+
+ 
+System   tearoom
+
+
+// waiter --> barman
+Dispatch transmitOrder : transmitOrder(TEA, TABLE)
+// barman --> waiter
+Dispatch teaReady : teaReady(TEA, TABLE)
+// barman events
+Event updatePrepareTea : updatePrepareTea(TEA, TABLE)
+Event updateBarmanWaitingOrder : updateBarmanWaitingOrder(X)
+
+Context ctxwaiter ip [host="waiterhost" port=8021]
+Context ctxbarman ip [host="barmanhost" port=8023]
+
+ExternalQActor waiter context ctxwaiter
+ 
+QActor barman context ctxbarman {	
+	
+	State waitingOrder initial {
+		println("Barman waiting for an order")		
+		updateResource [# """{"state":"waitingOrder"}""" #]
+		emit updateBarmanWaitingOrder : updateBarmanWaitingOrder(X)
+	} Transition t0 whenMsg transmitOrder -> prepareTea 
+	
+	State prepareTea {
+		println("Barman preparing tea")			
+		onMsg (transmitOrder : transmitOrder(TEA, TABLE)) {
+			[# 
+				val Tea = payloadArg(0)
+				val CurrentTable = payloadArg(1) 
+			#]
+			forward waiter -m   teaReady : teaReady($Tea, $CurrentTable)
+			updateResource [# """{"state":"prepareTea","tea":"$Tea","table":$CurrentTable}""" #]
+			emit updatePrepareTea : updatePrepareTea($Tea, $CurrentTable)
+		}		
+		
+	} Goto waitingOrder	
+} 

@@ -1,0 +1,599 @@
+/* 
+ * ================================================================================
+ * waiter.qak
+ * VERSION June 1, 2020 
+ * 
+ * External MQTT sites:
+ * 	"mqtt.eclipse.org:  mosquitto.org mqtt.fluux.io  broker.hivemq.com
+ * ================================================================================
+ */ 
+
+ 
+System   tearoom
+
+// client --> smartbell 
+Dispatch notify : notify(X)
+// smartbell --> waiter
+Request enterRequest : enterRequest(X)
+// waiter --> smartbell
+Reply accept : accept(X)	
+Reply inform : inform(MAX_WAIT)
+// client --> waiter
+Dispatch order : order(TEA, TABLE)
+// waiter --> barman
+Dispatch transmitOrder : transmitOrder(TEA, TABLE)
+// barman --> waiter
+Dispatch teaReady : teaReady(TEA, TABLE)
+// client --> waiter
+Dispatch payment : payment(TABLE)
+// timer --> waiter 
+Dispatch maxStayTimeExpired : maxStayTimeExpired(TABLE)
+
+// waiter events
+Event updateTableCheck : updateTableCheck(TABLE0, TABLE1)
+Event updateConvoyClient : updateConvoyClient(TARGET, TABLE0, TABLE1)
+Event updateTransmit : updateTransmit(TEA, TABLE)
+Event updateDeliver : updateDeliver(TABLE)
+Event updateCollect : updateCollect(TABLE)
+Event updateTableClean : updateTableClean(TABLE)
+Event updateWaiterHandleRequest : updateWaiterHandleRequest(X)
+// smartbell events
+Event updateCheckTemperature : updateCheckTemperature(CLIENTID, RESULT)
+Event updateWaiterResponse : updateWaiterResponse(CLIENTID, MSG)
+Event updateSmartbellHandleRequest : updateSmartbellHandleRequest(X)
+// barman events
+Event updatePrepareTea : updatePrepareTea(TEA, TABLE)
+Event updateBarmanWaitingOrder : updateBarmanWaitingOrder(X)
+
+// waiter --> timer
+Dispatch startTimer0 : startTimer0(X)
+Dispatch startTimer1 : startTimer1(X)
+Dispatch stopTimer0 : stopTimer0(X)
+Dispatch stopTimer1 : stopTimer1(X)
+
+// ----- walker ------
+	
+Request  movetoCell : movetoCell(X,Y)
+Reply    atcell     : atcell(X,Y)
+Reply	 walkbreak  : walkbreak(X,Y) 
+
+Dispatch cmd       : cmd(MOVE)
+Request step       : step( TIME )	
+Reply   stepdone   : stepdone(V)  
+Reply   stepfail   : stepfail(V)
+
+Context ctxtearoom   ip [host="127.0.0.1" port=8050]
+Context ctxbasicrobot   ip [host="localhost" port=8020]
+
+ExternalQActor basicrobot context ctxbasicrobot
+  
+QActor waiter context ctxtearoom {  
+	[# 
+		var Table0 = "clean"	
+		var Table1 = "clean"		
+		
+		val InactivityTime = 30000L
+		val MaxTime = 1000			
+		val map = "teaRoomExplored"
+		var CurrentClientID = ""
+		var ServingTable = 0
+		
+		val EntranceX = 1
+		val EntranceY = 4 
+		val Table0X = 2
+		val Table0Y = 2 
+		val Table1X = 4 
+		val Table1Y = 2
+		val ExitX = 5
+		val ExitY = 4
+		val BarmanX = 5
+ 		val BarmanY = 0
+ 		val HomeX = 0
+ 		val HomeY = 0
+	#]
+	
+	State start initial {
+		println("Waiter  : Started")
+		
+		run itunibo.planner.plannerUtil.initAI()
+		run itunibo.planner.plannerUtil.loadRoomMap(map) 		
+		run itunibo.planner.plannerUtil.showCurrentRobotState()	
+	} Goto handleRequest
+	
+	State handleRequest {
+		println("Waiter  : handleRequest")			
+		updateResource [# """{"state":"handleRequest"}""" #]
+		emit updateWaiterHandleRequest : updateWaiterHandleRequest(X)
+		
+	} Transition t0 whenTimeVar InactivityTime -> goHome 
+					whenRequest enterRequest -> tableCheck
+					whenMsg order -> transmitToBarman
+					whenMsg teaReady -> serve
+					whenMsg payment -> collect	
+					whenMsg maxStayTimeExpired -> collect					
+	
+	State tableCheck {   
+		println("Waiter  : Checking tables")				
+		
+		onMsg (enterRequest : enterRequest(CLIENT_ID)) {
+			[# CurrentClientID = payloadArg(0) #]
+		}
+		
+		delay 1000
+		if [# Table0 == "clean" || Table1 == "clean" #] { 
+			replyTo enterRequest with accept : accept(X)
+		} else {
+			replyTo enterRequest with inform : inform($MaxTime)
+		}			
+		updateResource [# """{"state":"tablecheck","table0":"$Table0","table1":"$Table1"}""" #]		
+		emit updateTableCheck : updateTableCheck($Table0, $Table1)
+	} Goto reachEntrance if [# Table0 == "clean" || Table1 == "clean" #] else handleRequest
+	
+	State reachEntrance {	 
+		println("Waiter  : Reaching Entrance")
+		updateResource [# "[reachEntrance]" #]	
+		request walker -m movetoCell : movetoCell($EntranceX, $EntranceY)		
+	} Transition t0 whenReply atcell -> convoyClient
+	
+	State convoyClient {  
+		println("Waiter  : Reaching Table")	
+		[# var TargetTable = 0 #]			
+		if [# Table0 == "clean" #]  {
+			[# TargetTable = 0 #]
+		} 
+		if [# Table0 == "dirty" && Table1 == "clean" #] {
+			[# TargetTable = 1 #]
+		}		
+		if [# TargetTable == 0 #] {
+			[# Table0 = "dirty"	#]
+			request walker -m movetoCell : movetoCell($Table0X, $Table0Y)	
+		}
+		if [# TargetTable == 1 #] {
+			[# Table1 = "dirty"	#]
+			request walker -m movetoCell : movetoCell($Table1X, $Table1Y)	
+		}			
+		updateResource [# """{"state":"convoyClient","target":$TargetTable,"table0":"$Table0","table1":"$Table1"}""" #]
+		emit updateConvoyClient : updateConvoyClient($TargetTable, $Table0, $Table1)
+		
+	} Transition t0 whenReply atcell -> handleRequest
+	
+	State transmitToBarman {
+		println("Waiter  : Transmitting order to barman")
+		onMsg (order : order(TEA, TABLE)) {
+			[#  
+				val Tea = payloadArg(0)
+				val Table = payloadArg(1)						 
+			#]
+			forward barman -m transmitOrder : transmitOrder($Tea, $Table)			
+			updateResource [# """{"state":"transmitToBarman","tea":"$Tea","table":$Table}""" #]			
+			emit updateTransmit : updateTransmit($Tea, $Table)
+		}		
+	} Goto handleRequest
+	
+	State serve {
+		println("Waiter  : Going to serve the client")
+			
+		onMsg (teaReady : teaReady(TEA, TABLE)) {
+			[#
+				val Tea = payloadArg(0)
+				ServingTable = payloadArg(1).toInt() 
+			#]			
+			updateResource [# """{"state":"serve","tea":"$Tea","table":$ServingTable}""" #]
+			request walker -m movetoCell : movetoCell($BarmanX, $BarmanY)
+		}
+	
+	} Transition t0 whenReply atcell -> deliverTea
+	
+	State deliverTea {
+		println("Waiter  : delivering tea")
+		if [# ServingTable == 0 #] {
+			request walker -m movetoCell : movetoCell($Table0X, $Table0Y)	
+		}
+		if [# ServingTable == 1 #] {
+			request walker -m movetoCell : movetoCell($Table1X, $Table1Y)	
+		}		
+		updateResource [# """{"state":"deliverTea","table":$ServingTable}""" #]
+		emit updateDeliver : updateDeliver($ServingTable)
+	} Transition t0 whenReply atcell -> enableTimer
+	
+	State enableTimer {
+		println("Waiter  : enabling timer")
+		if [# ServingTable == 0 #] {
+			forward timer0 -m startTimer0 : startTimer0(X)
+		}
+		if [# ServingTable == 1 #] {
+			forward timer1 -m startTimer1 : startTimer1(X)	
+		}		
+		updateResource [# """{"state":"enableTimer","table":$ServingTable}""" #]	
+	} Goto handleRequest
+	
+	
+	State collect{
+		println("Waiter  : Collecting the payment")	
+		onMsg (payment : payment(TABLE)) {
+			[# ServingTable = payloadArg(0).toInt() #]			
+		}
+		onMsg (maxStayTimeExpired : maxStayTimeExpired(TABLE)) {
+			[# ServingTable = payloadArg(0).toInt() #]			
+		}		
+		
+		if [# ServingTable == 0 #] {
+				request walker -m movetoCell : movetoCell($Table0X, $Table0Y)	
+				forward timer0 -m stopTimer0 : stopTimer0(X)
+			}
+		if [# ServingTable == 1 #] {
+				request walker -m movetoCell : movetoCell($Table1X, $Table1Y)	
+				forward timer1 -m stopTimer1 : stopTimer1(X)
+			}
+		updateResource [# """{"state":"collect","table":$ServingTable}""" #]
+		emit updateCollect : updateCollect($ServingTable)
+			
+	} Transition t0 whenReply atcell -> convoyAtExit  
+	
+	State convoyAtExit {
+		println("Waiter  : Taking the client to the exit")
+		updateResource [# """{"state":"convoyAtExit"}""" #]
+		request walker -m movetoCell : movetoCell($ExitX, $ExitY)				
+	} Transition t0 whenReply atcell -> cleanTable	
+	
+	State cleanTable {
+		updateResource [# """{"state":"cleanTable","table":$ServingTable}""" #]
+		println("Waiter  : Cleaning the table")		
+		if [# ServingTable == 0 #] {
+			request walker -m movetoCell : movetoCell($Table0X, $Table0Y)	
+		}
+		if [# ServingTable == 1 #] {
+			request walker -m movetoCell : movetoCell($Table1X, $Table1Y)	
+		}
+	} Transition t0 whenReply atcell -> setTableClean
+	
+	State setTableClean {
+		println("Waiter  : the table is clean")		
+				
+		if [# ServingTable == 0 #] {
+			[# Table0 = "clean" #]
+		}
+		if [# ServingTable == 1 #] {
+			[# Table1 = "clean" #]
+		}
+		updateResource [# """{"state":"setTableClean","table":$ServingTable}""" #]
+		emit updateTableClean : updateTableClean($ServingTable)
+		delay 500
+	} Goto handleRequest
+	
+	
+	State goHome { 
+		println("Waiter  : Going home")
+		request walker -m movetoCell : movetoCell($HomeX, $HomeY) 
+	} Transition t0 whenReply atcell -> handleRequest    
+ }
+ 
+QActor smartbell context ctxtearoom {
+ 	
+ 	[# var CurrentID = 0 #]
+ 	
+ 	State handleRequest initial {
+ 		println("Smart Bell: Start and listening") 	
+ 		updateResource [# """{"state":"handleRequest"}""" #]
+ 		emit updateSmartbellHandleRequest : updateSmartbellHandleRequest(X)
+ 		delay 2000 		
+ 	} Transition t0 whenMsg notify -> checkTemperature	
+ 					whenReply accept -> showWaiterResponse
+ 					whenReply inform -> showWaiterResponse
+ 	
+ 	State checkTemperature {
+ 		println("Smart Bell: Checking client temperature") 	
+ 		//[# var Temperature = (35..38).random() #]
+ 		[# var Temperature = 36 #]
+ 		//[# var Temperature = 39 #]
+ 
+ 		if [# Temperature < 37.5 #] {
+ 			[# CurrentID ++ #]	 		 			
+ 			updateResource [# """{"state":"checkTemperature","clientID":$CurrentID,"msg":"Temperature OK"}""" #]
+ 			emit updateCheckTemperature : updateCheckTemperature($CurrentID, Temperature_OK) 				
+ 			request waiter -m enterRequest : enterRequest($CurrentID)
+ 			
+ 		} else { 			
+ 			println("Smart Bell: Client temperature is too high!: $Temperature")
+ 			updateResource [# """{"state":"checkTemperature","clientID":$CurrentID,"msg":"Temperature too high"}""" #]
+ 			emit updateCheckTemperature : updateCheckTemperature($CurrentID, Temperature_too_High)
+ 		}
+ 		delay 500 		
+ 	} Goto handleRequest 		
+
+ 	
+ 	State showWaiterResponse {
+ 		println("Smart Bell: Showing waiter response")
+ 		onMsg (accept : accept(X)) { 			
+ 			updateResource [# """{"state":"showWaiterResponse","clientID":$CurrentID,"msg":"Enter Now"}""" #] 
+			emit updateWaiterResponse : updateWaiterResponse($CurrentID, Enter_Now)	
+ 		}
+ 		onMsg (inform : inform(MAX_TIME)) { 			
+ 			[# val MaxTime = payloadArg(0) #]
+ 			updateResource [# """{"state":"showWaiterResponse","clientID":$CurrentID,"msg":"Wait for $MaxTime"}""" #]
+ 			emit updateWaiterResponse : updateWaiterResponse($CurrentID, $MaxTime)
+ 		} 		
+ 		delay 1000
+ 	} Goto handleRequest
+}
+ 
+QActor barman context ctxtearoom {	
+	
+	State waitingOrder initial {
+		println("Barman waiting for an order")		
+		updateResource [# """{"state":"waitingOrder"}""" #]
+		emit updateBarmanWaitingOrder : updateBarmanWaitingOrder(X)
+	} Transition t0 whenMsg transmitOrder -> prepareTea 
+	
+	State prepareTea {
+		println("Barman preparing tea")			
+		onMsg (transmitOrder : transmitOrder(TEA, TABLE)) {
+			[# 
+				val Tea = payloadArg(0)
+				val CurrentTable = payloadArg(1) 
+			#]
+			forward waiter -m   teaReady : teaReady($Tea, $CurrentTable)
+			updateResource [# """{"state":"prepareTea","tea":"$Tea","table":$CurrentTable}""" #]
+			emit updatePrepareTea : updatePrepareTea($Tea, $CurrentTable)
+		}		
+		
+	} Goto waitingOrder	
+} 
+
+QActor walker context ctxtearoom {
+	
+	[#
+		var DestX = 0
+		var DestY = 0 	
+		
+		var CurrentMove = ""		
+		//val StepTime = 380L
+		val StepTime = 360L	
+		var obstacleFound = false
+		val BackTime = 2 * StepTime / 3
+	
+	#]
+	
+	
+	State handleCommand initial {
+		println("Walker: started and waiting for commands")
+	} Transition t0 whenRequest movetoCell -> walk
+	
+	State walk {		
+		onMsg (movetoCell : movetoCell(X, Y)) {
+			[#
+				DestX = payloadArg(0).toInt()
+				DestY = payloadArg(1).toInt()
+			#]
+			run itunibo.planner.plannerUtil.planForGoal("$DestX","$DestY")			
+		}	
+	} Goto executePlan if [# itunibo.planner.plannerUtil.existActions() #] else noPlan
+	
+	State noPlan{
+		println("Walker: plan not found")		
+	}
+	Goto handleCommand
+	
+	
+	State executePlan {		
+		[#  CurrentMove = itunibo.planner.plannerUtil.getNextPlannedMove() #]
+		delay 250
+	} Goto moveForward if [# CurrentMove == "w" #] else rotate
+	
+	State moveForward {		
+		request basicrobot -m step : step( $StepTime  )
+		
+	} Transition t0 whenReply stepdone   -> stepDone   
+					whenReply stepfail   -> stepFailed 
+	
+	
+	State stepDone{ 		 		
+ 		run itunibo.planner.plannerUtil.updateMap("w")
+  	}
+	Goto executePlan if [# CurrentMove.length > 0 #] else notifySuccess	
+
+	State notifySuccess{
+	    println("Walker: $DestX,$DestY reached")
+	    run itunibo.planner.plannerUtil.showCurrentRobotState()
+	    replyTo movetoCell with atcell : atcell($DestX,$DestY) 					
+	}
+	Goto handleCommand
+	
+	State stepFailed{
+		println("Walker: step failed")	
+		
+		[# obstacleFound = true #] 		
+		onMsg(stepfail : stepfail(DURATION, CAUSE) ){
+			[# val Duration = payloadArg(0).toLong()  ; val Dt = Math.abs(StepTime-Duration); val BackT = Duration/2 #] 
+			println("Walker stepFail Duration = $Duration, BackTime = ${BackTime}")
+			if [# Duration > BackTime #] {    
+				forward basicrobot -m cmd : cmd( s )
+				delayVar BackT
+				forward basicrobot -m cmd : cmd( h )
+			}	 
+ 		}
+	    run itunibo.planner.plannerUtil.updateMapObstacleOnCurrentDirection() 	
+	} Goto handleCommand
+	
+	State rotate {
+		
+		if [# CurrentMove == "l" || CurrentMove == "r"  #]{
+  			forward basicrobot -m cmd : cmd($CurrentMove)
+ 			run itunibo.planner.plannerUtil.updateMap( "$CurrentMove" )
+  		} 
+		
+	} Goto executePlan if [# CurrentMove.length > 0 #] else notifySuccess
+	
+}
+
+QActor timer0 context ctxtearoom {
+	
+	[# 
+		val Table = 0
+		val MaxStayTime = 30000L	
+	#]
+	
+	State handleRequest initial {
+		println("Timer0: waiting for requests")
+		updateResource [# """{"state":"handleRequest"}""" #]
+	} Transition t0 whenMsg startTimer0 -> enable
+	
+	State enable {
+		println("Timer0: Enabling the timer")
+		updateResource [# """{"state":"enable"}""" #]		
+	} Transition t1 whenTimeVar MaxStayTime -> notifyTimeElapsed
+					whenMsg stopTimer0 -> handleRequest
+	
+	State notifyTimeElapsed {
+		println("Timer0: notifying time elapsed")
+		updateResource [# """{"state":"notifyTimeElapsed"}""" #]
+		forward waiter -m maxStayTimeExpired : maxStayTimeExpired($Table)		
+	} Goto handleRequest	
+}
+
+QActor timer1 context ctxtearoom {
+	
+	[# 
+		val Table = 1
+		val MaxStayTime = 30000L	
+	#]
+	
+	State handleRequest initial {
+		println("Timer1: waiting for requests")
+		updateResource [# """{"state":"handleRequest"}""" #]
+	} Transition t0 whenMsg startTimer1 -> enable
+	
+	State enable {
+		println("Timer1: Enabling the timer")
+		updateResource [# """{"state":"enable"}""" #]		
+	} Transition t1 whenTimeVar MaxStayTime -> notifyTimeElapsed
+					whenMsg stopTimer1 -> handleRequest
+	
+	State notifyTimeElapsed {
+		println("Timer1: notifying time elapsed")
+		updateResource [# """{"state":"notifyTimeElapsed"}""" #]
+		forward waiter -m maxStayTimeExpired : maxStayTimeExpired($Table)		
+	} Goto handleRequest	
+} 
+
+QActor knowledgebase context ctxtearoom {
+	
+	[#
+		var Waiter = """{}"""
+		var Smartbell = """{}"""
+		var Barman = """{}"""
+		var Status = """{"smartbell": """ + Smartbell + ""","waiter": """+ Waiter +""", "barman":""" + Barman +""" }"""
+	#]
+	
+	State handleUpdate initial {
+		println("Knowledge base ready to receive updates.")
+		
+	} Transition t0 whenEvent updateCheckTemperature -> setStatus
+					whenEvent updateWaiterResponse -> setStatus
+					whenEvent updateTableCheck -> setStatus
+					whenEvent updateConvoyClient -> setStatus
+					whenEvent updateTransmit -> setStatus
+					whenEvent updateDeliver -> setStatus
+					whenEvent updateCollect -> setStatus
+					whenEvent updateTableClean -> setStatus
+					whenEvent updatePrepareTea -> setStatus
+					whenEvent updateWaiterHandleRequest -> setStatus
+					whenEvent updateSmartbellHandleRequest -> setStatus
+					whenEvent updateBarmanWaitingOrder -> setStatus
+	
+	State setStatus {
+		println("Knowledge base setting the state.")
+		
+		onMsg(updateSmartbellHandleRequest : updateSmartbellHandleRequest(X)) {
+			[# 					
+				Smartbell = """{"state":"handleRequest"}"""						
+			#]
+		}
+		
+		onMsg(updateCheckTemperature : updateCheckTemperature(CLIENTID, RESULT)) {
+			[# 				
+				val ClientID = payloadArg(0)
+				val Result = payloadArg(1)
+				Smartbell = """{"state":"checkTemperature","clientID":""" +ClientID+ ""","msg":"""" +Result+ """"}"""						
+			#]													
+		}
+		onMsg(updateWaiterResponse : updateWaiterResponse(CLIENTID, MSG)) {
+			[# 				
+				val ClientID = payloadArg(0)
+				val Msg = payloadArg(1)				
+				if (Msg.contains("Enter")) {
+					Smartbell = """{"state":"showWaiterResponse","clientID":""" +ClientID+ ""","msg":"""" +Msg+ """"}"""
+				} else {
+					Smartbell = """{"state":"showWaiterResponse","clientID":""" +ClientID+ ""","msg":"Wait for """ +Msg+ """"}"""					
+				}						
+			#]											
+		}
+		
+		onMsg(updateWaiterHandleRequest : updateWaiterHandleRequest(X)) {
+			[#						
+				Waiter = """{"state":"handleRequest"}"""						
+			#]		
+		}
+		
+		onMsg(updateTableCheck : updateTableCheck(TABLE0, TABLE1)) {
+			[# 				
+				val Table0 = payloadArg(0)
+				val Table1 = payloadArg(1)
+				Waiter = """{"state":"tableCheck","table0":"""" +Table0+ """","table1":"""" +Table1+ """"}"""						
+			#]											
+		}
+		onMsg(updateConvoyClient : updateConvoyClient(TARGET, TABLE0, TABLE1)) {
+			[# 				
+				val Target = payloadArg(0)
+				val Table0 = payloadArg(1)
+				val Table1 = payloadArg(2)
+				Waiter = """{"state":"convoyClient", "target":"""+Target+""","table0":"""" +Table0+ """","table1":"""" +Table1+ """"}"""						
+			#]											
+		}
+		onMsg(updateTransmit : updateTransmit(TEA, TABLE)) {
+			[# 				
+				val Tea = payloadArg(0)
+				val Table = payloadArg(1)				
+				Waiter = """{"state":"transmitToBarman", "tea":""""+Tea+"""","table":""" +Table+ """}"""						
+			#]		
+		}
+		onMsg(updateDeliver : updateDeliver(TABLE)) {
+			[# 						
+				val Table = payloadArg(0)				
+				Waiter = """{"state":"deliverTea","table":""" +Table+ """}"""						
+			#]			
+		}
+		onMsg(updateCollect : updateCollect(TABLE)) {
+			[# 						
+				val Table = payloadArg(0)				
+				Waiter = """{"state":"collect","table":""" +Table+ """}"""						
+			#]			
+		}
+		onMsg(updateTableClean : updateTableClean(TABLE)) {
+			[# 						
+				val Table = payloadArg(0)				
+				Waiter = """{"state":"setTableClean","table":""" +Table+ """}"""						
+			#]													
+		}
+		
+		onMsg(updateBarmanWaitingOrder : updateBarmanWaitingOrder(X)) {
+			[# 							
+				Barman = """{"state":"waitingOrder"}"""						
+			#]
+		}
+		
+		onMsg(updatePrepareTea : updatePrepareTea(TEA, TABLE)) {
+			[# 				
+				val Tea = payloadArg(0)
+				val Table = payloadArg(1)				
+				Barman = """{"state":"prepareTea", "tea":""""+Tea+"""","table":""" +Table+ """}"""						
+			#]		
+		}		
+		[# Status = """{"smartbell": """ + Smartbell + ""","waiter": """+ Waiter +""", "barman":""" + Barman +""" }""" #]
+		updateResource [# Status #]
+				
+	} Goto handleUpdate
+	
+}
+
+
