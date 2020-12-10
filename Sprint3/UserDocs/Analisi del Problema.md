@@ -28,5 +28,10 @@ Tale scelta apre le porte a future implementazioni tra cui ad esempio un attore 
 
 L'unica cosa che dovranno sapere sarà il protocollo degli eventi ammissibili e la relativa funzionalità rendendo superflua la conoscenza delle implementazioni o l'architettura del sistema.
 
+La modellazione di questo nuovo approccio e formalizzata nel seguente [file](analisi.qak)
+
 ## Architettura Logica
+Oltre al sistema presentato fino ad ora, è stata realizzata anche una versione distribuita su più nodi secondo la seguente architettura logica.
+
+*(l'implementazione in questione è disponibile al seguente [link](../distributed/))*
 ![Architettura logica](ArchitetturaLogica.png)
