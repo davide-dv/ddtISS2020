@@ -1,6 +1,7 @@
 # Analisi dei Requisiti
 
 Per il secondo sprint consideriamo i seguenti vincoli:
+
     ● i Client eseguono le operazioni correttamente
 
 ## Miglioramento della flessibilità del sistema
