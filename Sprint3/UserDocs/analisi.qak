@@ -1,0 +1,229 @@
+/* 
+ * ================================================================================
+ * waiter.qak
+ * VERSION June 1, 2020 
+ * 
+ * External MQTT sites:
+ * 	"mqtt.eclipse.org:  mosquitto.org mqtt.fluux.io  broker.hivemq.com
+ * ================================================================================
+ */ 
+
+ 
+System   tearoom
+
+// client --> smartbell 
+Dispatch notify : notify(X)
+// smartbell --> client : show on display (temperature, ID, maxwait)
+
+// smartbell --> waiter
+Request enterRequest : enterRequest(X)
+// waiter --> smartbell
+Reply accept : accept(X)	
+Reply inform : inform(MAX_WAIT)
+// client --> waiter
+Dispatch order : order(TEA, TABLE)
+// waiter --> barman
+Dispatch transmitOrder : transmitOrder(TEA, TABLE)
+// barman --> waiter
+Dispatch teaReady : teaReady(TEA, TABLE)
+// client --> waiter
+Dispatch payment : payment(TABLE)
+// timer --> waiter
+Dispatch maxStayTimeExpired : maxStayTimeExpired(TABLE)
+
+// waiter events
+Event updateTableCheck : updateTableCheck(TABLE0, TABLE1)
+Event updateConvoyClient : updateConvoyClient(TARGET, TABLE0, TABLE1)
+Event updateTransmit : updateTransmit(TEA, TABLE)
+Event updateDeliver : updateDeliver(TABLE)
+Event updateCollect : updateCollect(TABLE)
+Event updateTableClean : updateTableClean(TABLE)
+Event updateWaiterHandleRequest : updateWaiterHandleRequest(X)
+// smartbell events
+Event updateCheckTemperature : updateCheckTemperature(CLIENTID, RESULT)
+Event updateWaiterResponse : updateWaiterResponse(CLIENTID, MSG)
+Event updateSmartbellHandleRequest : updateSmartbellHandleRequest(X)
+// barman events
+Event updatePrepareTea : updatePrepareTea(TEA, TABLE)
+Event updateBarmanWaitingOrder : updateBarmanWaitingOrder(X)
+
+
+Context ctxtearoom   ip [host="localhost" port=8050]
+  
+QActor waiter context ctxtearoom {  
+	[# 			
+		var Table0 = "clean"	
+		var Table1 = "clean"
+		val MaxTime = 1000	
+	#]
+	
+	State start initial {
+		println("Waiter  : Started")
+	} Goto handleRequest
+	
+	State handleRequest {
+		println("Waiter  : Listening")	
+		emit updateWaiterHandleRequest : updateWaiterHandleRequest(X)	
+	} Transition t0 whenTime 5000 -> goHome 
+					whenRequest enterRequest -> tableCheck
+					whenMsg order -> transmitToBarman
+					whenMsg teaReady -> serve
+					whenMsg payment -> collect	
+					whenMsg maxStayTimeExpired -> collect
+	
+	State tableCheck {  
+		println("Waiter  : Checking tables")				
+		
+		if [# Table0 == "clean" || Table1 == "clean" #] { 
+			replyTo enterRequest with accept : accept(X)
+		} else {
+			replyTo enterRequest with inform : inform($MaxTime)
+		}	
+		emit updateTableCheck : updateTableCheck($Table0, $Table1)			
+	} Goto reachEntrance if [# Table0 == "clean" || Table1 == "clean" #] else handleRequest
+	
+	State reachEntrance {	
+		println("Waiter  : Reaching Entrance")		
+	} Goto convoyClient
+	
+	State convoyClient {  
+		println("Waiter  : Reaching Table")	
+		emit updateConvoyClient : updateConvoyClient($TargetTable, $Table0, $Table1)		
+	} Goto handleRequest
+	
+	State transmitToBarman {
+		println("Waiter  : Transmitting order to barman")
+		onMsg (order : order(TEA, TABLE)) {
+			[#  
+				val Tea = payloadArg(0)
+				val Table = payloadArg(1)				 
+			#]
+			forward barman -m transmitOrder : transmitOrder($Tea, $Table)
+			emit updateTransmit : updateTransmit($Tea, $Table)
+		}			
+	} Goto handleRequest
+	
+	State serve {
+		println("Waiter  : Going to serve the client")
+		
+		onMsg (teaReady : teaReady(TEA, TABLE)) {
+			[#
+				val Tea = payloadArg(0)
+				ServingTable = payloadArg(1).toInt() 
+			#]		
+		}
+	} Goto handleRequest	
+	
+	State collect{
+		println("Waiter  : Collecting the payment")	
+		emit updateCollect : updateCollect($ServingTable)
+	} Goto convoyAtExit  
+	
+	State convoyAtExit {
+		println("Waiter  : Taking the client to the exit")		
+	} Goto cleanTable
+	
+	State cleanTable {
+		println("Waiter  : Cleaning the table")		
+	} Goto handleRequest
+	
+	State goHome { // messaggio dal walker 
+		println("Waiter  : Going home")
+		delay 1000	
+	} Goto handleRequest
+    
+ }
+ 
+ QActor smartbell context ctxtearoom {
+ 	
+ 	[# var CurrentID = 0 #]
+ 	
+ 	State handleRequest initial {
+ 		println("Smart Bell: Start and listening") 
+		emit updateSmartbellHandleRequest : updateSmartbellHandleRequest(X)	
+ 	} Transition t0 whenMsg notify -> checkTemperature	
+ 					whenReply accept -> showWaiterResponse
+ 					whenReply inform -> showWaiterResponse
+ 	
+ 	State checkTemperature {
+ 		println("Smart Bell: Checking client temperature") 	
+ 		[# var Temperature = 35 #]
+ 		
+ 		if [# Temperature < 37.5 #] {
+ 			[# CurrentID ++ #]	 			
+ 			updateResource [# "$CurrentID --- Temperature OK" #]
+ 			request waiter -m enterRequest : enterrequest($CurrentID)
+			emit updateCheckTemperature : updateCheckTemperature($CurrentID, Temperature_OK) 				
+ 		} else {
+ 			updateResource [# "$CurrentID --- Temperature too High" #]
+			emit updateCheckTemperature : updateCheckTemperature($CurrentID, Temperature_too_High)		
+ 		} 		 		
+ 	} Goto handleRequest 		
+
+ 	
+ 	State showWaiterResponse {
+ 		println("Smart Bell: Showing waiter response")
+ 		onMsg (accept : accept(X)) {
+ 			updateResource [# "$CurrentID --- Enter Now" #]
+			emit updateWaiterResponse : updateWaiterResponse($CurrentID, Enter_Now)	
+ 		}
+ 		onMsg (inform : inform(MAX_TIME)) {
+ 			updateResource [# "$CurrentID --- Wait for " + payloadArg(0) #]
+			emit updateWaiterResponse : updateWaiterResponse($CurrentID, $MaxTime)
+ 		} 		
+ 	} Goto handleRequest
+}
+ 
+QActor barman context ctxtearoom {	
+	
+	State waitingOrder initial {
+		println("Barman waiting for an order")	
+		emit updateBarmanWaitingOrder : updateBarmanWaitingOrder(X)	
+	} Transition t0 whenMsg transmitOrder -> prepareTea 
+	
+	State prepareTea {
+		println("Barman preparing tea")			
+		onMsg (transmitOrder : transmitOrder(TEA, TABLE)) {
+			[# 
+				val Tea = payloadArg(0)
+				val CurrentTable = payloadArg(1) 
+			#]
+			forward waiter -m   teaReady : teaReady($Tea, $CurrentTable)
+			emit updatePrepareTea : updatePrepareTea($Tea, $CurrentTable)
+		}		
+	} Goto waitingOrder	
+} 
+
+
+QActor knowledgebase context ctxtearoom {
+	
+	[#
+		var Waiter = """{}"""
+		var Smartbell = """{}"""
+		var Barman = """{}"""
+		var Status = """{"smartbell": """ + Smartbell + ""","waiter": """+ Waiter +""", "barman":""" + Barman +""" }"""
+	#]
+	
+	State handleUpdate initial {
+		println("Knowledge base ready to receive updates.")
+		
+	} Transition t0 whenEvent updateCheckTemperature -> setStatus
+					whenEvent updateWaiterResponse -> setStatus
+					whenEvent updateTableCheck -> setStatus
+					whenEvent updateConvoyClient -> setStatus
+					whenEvent updateTransmit -> setStatus
+					whenEvent updateDeliver -> setStatus
+					whenEvent updateCollect -> setStatus
+					whenEvent updateTableClean -> setStatus
+					whenEvent updatePrepareTea -> setStatus
+					whenEvent updateWaiterHandleRequest -> setStatus
+					whenEvent updateSmartbellHandleRequest -> setStatus
+					whenEvent updateBarmanWaitingOrder -> setStatus
+	
+	State setStatus {
+		println("Knowledge base setting the state.")
+		updateResource [# Status #]				
+	} Goto handleUpdate	
+}
+
+
