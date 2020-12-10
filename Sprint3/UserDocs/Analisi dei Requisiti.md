@@ -14,8 +14,6 @@ Allo stato attuale, il sistema non è in grado di mostrare un’evoluzione degli
 
 L’eventuale estensione del sistema dovrà poter avvenire nel modo più immediato possibile, senza cambiamenti sostanziali. 
 
-I casi d’uso considerati in questo Sprint sono gli stessi definiti nell’analisi generale, e sono definiti formalmente insieme ai requisiti presi in considerazione all’interno del file .qak linkato.
-
 ## TestPlan
 
 Il TestPlan dello Sprint comprende i seguenti punti:
@@ -26,4 +24,4 @@ Il TestPlan dello Sprint comprende i seguenti punti:
 *   verificare che il waiter accompagni il client alla exitdoor;
 *   verificare che il sistema funzioni correttamente con più Client.
 
-La formalizzazione dei test è nel seguente [file di testing Junit](TearoomTest.kt).
+La formalizzazione dei test è nel seguente [file di testing Junit](../tearoom/src/test/kotlin/tearoom/TearoomTest.kt).
