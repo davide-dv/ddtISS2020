@@ -2,8 +2,7 @@
 ## Organizzazione Sprint
 |Sprint           |Obiettivi                      |
 |-----------------|-------------------------------|
-|Sprint0	      |Scrittura dell'analisi dei requisiti per l'intero progetto, con confronto delle tecnologie da adottare        |
-|Sprint1          |Analisi e sviluppo di una prima versione del sistema, compreso di collegamento al simulatore ed interfaccia grafica            |
+|Sprint1          |Scrittura dell'analisi dei requisiti, con confronto delle tecnologie da adottare. Sviluppo di una prima versione del sistema, compreso di collegamento al simulatore ed interfaccia grafica            |
 |Sprint2          |Analisi e sviluppo del sistema, considerando il caso di *Client* multipli; raffinamento dell'interfaccia grafica|
 |Sprint3          |Revisione della modalità di rappresentazione dello stato del sistema; distribuzione su più nodi|
 
