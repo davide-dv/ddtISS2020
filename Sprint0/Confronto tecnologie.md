@@ -2,10 +2,10 @@
 
 Jade è un framework che permette di implementare sistemi distribuiti in linguaggio Java, tramite un'architettura che segue le specifiche FIPA (Foundation for Intelligent Physical Agent).
 I componenti principali del framework sono i container, gli agenti, i messaggi che possono scambiare, i comportamenti eseguibili ed infine il sistema di white e yellow pages.
-Essendo distribuito, è possibile eseguire gli agenti Jade su nodi diversi a patto che esista sulll’host un environment Jade capace di ospitare almeno un container, il main container responsabile di mantenere un registro di tutti gli altri container sulla stessa piattaforma Jade (tramite i quali gli agenti possono trovarsi tra loro).
+Essendo distribuito, è possibile eseguire gli agenti Jade su nodi diversi a patto che esista sull’host un environment Jade capace di ospitare almeno un container, il main container responsabile di mantenere un registro di tutti gli altri container sulla stessa piattaforma Jade (tramite i quali gli agenti possono trovarsi tra loro).
 Gli agenti sono di tipo passivo, dato che per specifiche FIPA devono essere implementati con attenzione all’interazione piuttosto che al “ragionamento”. All’atto pratico, si tratta di estendere la classe Java _Agent_.
 
-Per quanto riguarda i messaggi, ne esistono di diverso tipo[^1] (anche questi seguono il FIPA ACL (Agent Communication Language) Message Structure Specification).
+Per quanto riguarda i messaggi, ne esistono di diverso tipo[^1], anche questi seguono il FIPA ACL (Agent Communication Language) Message Structure Specification.
 Ogni messaggio è costituito da:
 *   Performative: tipo di messaggio FIPA
 *   Addressing: receiver o sender
@@ -43,14 +43,14 @@ I tipi di performative sono i seguenti:
 22. Subscribe: The act of requesting a persistent intention to notify the sender of the value of a reference, and to notify again whenever the object identified by the reference changes.
 
 La comunicazione attraverso questi messaggi avviene in modo asicrono, ogni agente avrà infatti una coda in cui accumulare messaggi in ingresso.
-I comportamenti sono definiti attraverso una vera e propria specializzazione di classe Behaviour e possono essere di vario tipo, i principali sono:
+I comportamenti sono definiti attraverso una vera e propria specializzazione di classe *Behaviour* e possono essere di vario tipo, i principali sono:
 *   OneShotBehaviour
 *   CyclicBehaviour
 *   SequentialBehaviour
 *   ParallelBehaviour
 *   FSMBehaviour
 
-Le wihite pages introdotte precedentemente sono un servizio fornito dall’Agent Management System (AMS) che permette ad un agente di trovarne un altro conoscendo soltanto il nome.
+Le white pages introdotte precedentemente sono un servizio fornito dall’Agent Management System (AMS) che permette ad un agente di trovarne un altro conoscendo soltanto il nome.
 Esiste un solo AMS per piattaforma Jade ed ha il compito di tenere traccia di tutti gli agenti presenti nella piattaforma, sia di agenti presenti in container locali, sia in quelli distribuiti. 
 
 Le yellow pages, in modo simile alle white pages mantengono traccia dei servizi offerti dagli agenti (invece che dei nomi). In questo caso al posto dell’AMS si parla di Directory Facilitator (DF).
@@ -59,7 +59,7 @@ Inoltre Jade offer degli strumenti di gestione come il Remote Monitoring Agent (
 Permette inoltre di costruire messaggi da inviare “manualmente” simulando un agente sender; permette anche di “sniffare” messaggi tramite un apposito Sniffer Agent.
 
 La necessità di aderire al protocollo FIPA, se da una parte costringe uno sviluppo rigoroso e con minori problemi di comunicazione tra agenti, va senz’altro ad introdurre una complessità inutilmente elevata per il progetto preso in analisi.
-Ad esempio, basti guardare al numero di tipologie di messaggi tra cui scegliere in Jade, ben 22, e quelli di Qactor che sono soltanto 3.
+Ad esempio, basti guardare al numero di tipologie di messaggi tra cui scegliere in Jade, ben 22, e quelli di Qactor che sono soltanto 4.
 Inoltre lo sviluppo in Jade è molto verboso, a differenza dello stile di scrittura conciso di Qactor, cosa che porterà sicuramente a tempi di sviluppo più brevi.
 
 ## Spring Framework
