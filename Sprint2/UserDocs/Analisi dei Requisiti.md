@@ -14,7 +14,7 @@ La scadenza del tempo massimo è individuale per ogni tavolo.
 
 I casi d’uso considerati in questo Sprint sono gli stessi definiti nell’analisi generale, e sono definiti formalmente insieme ai requisiti presi in considerazione all’interno del file [qak linkato](analisi.qak).
 
-Il Manager deve poter visualizzare lo [stato del sistema](../../Sprint0/Analisi%20dei%20Requisiti.md#componenti-del-sistema) attraverso l'interfaccia grafica.
+Il Manager deve poter visualizzare lo [stato del sistema](../../Sprint1/UserDocs/Analisi%20dei%20Requisiti.md#componenti-del-sistema) attraverso l'interfaccia grafica.
 
 ## TestPlan
 Il TestPlan dello Sprint comprende i seguenti punti:
