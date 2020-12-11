@@ -26,7 +26,7 @@ Un'analisi formalizzata è presente nel seguente file [.qak](analisi.qak)
 ## Stato del Sistema
 
 Lo stato del sistema deve rappresentare:
-*   stato corrente dei tavoli: clean, dirty, scadenza/durata MaxStayTime
+*   stato corrente dei tavoli: clean, dirty
 *   stato corrente del waiter
 *   stato corrente della smartbell
 *   stato corrente del barman
