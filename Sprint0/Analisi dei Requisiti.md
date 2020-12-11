@@ -43,12 +43,12 @@ Alcune di queste sono: l’assenza di flusso di controllo indipendente e sopratt
 Queste caratteristiche si possono trovare cambiando paradigma in favore di uno ad Attori.
 
 Gli attori infatti hanno un flusso di controllo indipendente e comunicano tramite messaggi _by design_ su nodi diversi.
-_Per un confronto con altre tecnologie riferirsi al file: “[Confronto tecnologie](Confronto%20tecnologie.md)”_
+
+_Per un confronto con altre tecnologie riferirsi al file: “[Confronto tecnologie](Confronto%20tecnologie.md)”._
 
 Per questo è stato analizzato il linguaggio di modellazione Qactor.
 Date le sue caratteristiche è quello più adatto a gestire questo problema.
 Il linguaggio prevede degli Attori Qactor come entità principali capaci di comunicare in un ambiente distribuito tramite scambio di messaggi.
-Questi messaggi permettono una semantica sia sincrona (Request/Reply) che asincrona (Dispatch/Event).
 
 Inoltre trattandosi di un linguaggio di modellazione, permette di definire le entità in gioco senza legarsi ad una specifica tecnologia. Ad esempio in questo caso il Qactor genererà del codice Kotlin in automatico, ma si potrebbe personalizzare diversamente.
 Da ora, sarà utilizzato il linguaggio Qactor per formalizzare gli agenti e i messaggi.
@@ -61,6 +61,7 @@ All’interno del test saranno verificati i seguenti punti:
 *   verificare che il waiter consegni il tè giusto al tavolo da cui è partito l’ordine;
 *   verificare che il waiter ottenga il pagamento se scade il tempo massimo per la consumazione del client (maxstaytime);
 *   verificare che il waiter accompagni il client alla exitdoor.
+*   verificare che il waiter pulisca il tavolo appena liberato.
 *   verificare che il sistema funzioni correttamente con più Client.
 
 Il testing dell’applicazione sarà effettuato tramite JUnit.
