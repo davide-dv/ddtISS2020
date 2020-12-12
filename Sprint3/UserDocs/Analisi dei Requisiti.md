@@ -1,20 +1,20 @@
 # Analisi dei Requisiti
 
-Per il secondo sprint consideriamo i seguenti vincoli:
-* i Client eseguono le operazioni correttamente
-
-Dopo la retrospective dello Sprint precedente è emersa la necessità di avere un sistema più felssibile per nuove funzionalità relative allo stato dello stesso.
+Dopo la retrospective dello Sprint precedente è emersa la necessità di avere un sistema più flessibile per nuove funzionalità relative allo stato dello stesso.
 Per questo motivo, in questo Sprint non si procederà alla analisi dei requisiti definiti del committente come fatto in quelli precedenti, ma si andrà ad operare su un requisito non funzionale.
 
 ## Miglioramento della flessibilità del sistema
 
-Il sistema deve essere in grado di recepire eventuali aggiunte future espresse dal cliente, ad esempio la possibilità di mantenere uno storico degli stati dei vari attori. 
+Il sistema deve essere in grado di recepire eventuali richieste future espresse dal cliente, ad esempio la possibilità di mantenere uno storico degli stati dei vari attori. 
 
-Allo stato attuale, il sistema non è in grado di mostrare un’evoluzione degli stati, ma solo di fornire un’istantanea in un dato momento. 
+Attualmente il sistema non è in grado di mostrare un’evoluzione degli stati, ma solo di fornire un’istantanea in un dato momento. 
 
 L’eventuale estensione del sistema dovrà poter avvenire nel modo più immediato possibile, senza cambiamenti sostanziali. 
 
 ## TestPlan
+
+Per il terzo sprint consideriamo i seguenti vincoli:
+* i Client eseguono le operazioni correttamente
 
 Il TestPlan dello Sprint comprende i seguenti punti:
 *   garantire l’accesso al client soltanto se la sua temperatura è inferiore a 37.5°C e se c’è almeno un tavolo pulito. Verifica che il client riceva un Client ID dalla smartbell;
