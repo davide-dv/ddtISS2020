@@ -564,7 +564,22 @@ fun testMaxStayTime() {
 	}	
 }	
 
+@kotlinx.coroutines.ObsoleteCoroutinesApi
+@kotlinx.coroutines.ExperimentalCoroutinesApi
+fun testTemperatureTooHigh() {		// high temperature must be set in the smartbell qak
+	smartbell.setURI(uriStr)
+	runBlocking{
+		delay(initDelayTime)
 
+		val msg : ApplMessage = MsgUtil.buildDispatch("test", "notify", "notify(X)", "smartbell")		
+		smartbell.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)	
+		delay(250)
+		println("smart: " + smartbell.get().getResponseText())
+		println("KNOWLEDGE BASE: " + knowledgebase.get().getResponseText())
+		assertTrue(smartbell.get().getResponseText() == """{"state":"checkTemperature","clientID":0,"msg":"Temperature too high"}""")
+		delay(1200)	
+	}
+}
 
 
 	
@@ -572,8 +587,7 @@ fun testMaxStayTime() {
 @kotlinx.coroutines.ObsoleteCoroutinesApi
 @kotlinx.coroutines.ExperimentalCoroutinesApi
 	@Test
-	fun testTeaRoom(){
-					
+	fun testTeaRoom(){		
 		//testCoap()
 		//testCoapMultiClient()
 		//testCoapFullRoom()
@@ -581,6 +595,6 @@ fun testMaxStayTime() {
 		testCoapFullRoomTwoTimer()
 		//testCoapFullRoomThirdClient()
 		//testMaxStayTime()
-		
+		//testTemperatureTooHigh()
 	}
 }
