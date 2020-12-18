@@ -575,7 +575,6 @@ fun testTemperatureTooHigh() {		// high temperature must be set in the smartbell
 		smartbell.put(msg.toString(), MediaTypeRegistry.TEXT_PLAIN)	
 		delay(250)
 		println("smart: " + smartbell.get().getResponseText())
-		println("KNOWLEDGE BASE: " + knowledgebase.get().getResponseText())
 		assertTrue(smartbell.get().getResponseText() == """{"state":"checkTemperature","clientID":0,"msg":"Temperature too high"}""")
 		delay(1200)	
 	}
